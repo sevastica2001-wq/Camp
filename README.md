@@ -41,6 +41,28 @@ Keys live in:
 
 Use the **publishable/anon** key only in the Angular app. Never put the service-role key in the client.
 
+## Deploy (Cloudflare Pages)
+
+1. In [Cloudflare Dashboard](https://dash.cloudflare.com/) → **Workers & Pages** → **Create** → **Pages** → connect the `Camp` GitHub repo.
+2. Build settings:
+
+| Setting | Value |
+|---------|--------|
+| Framework preset | None (or Angular) |
+| Build command | `npm run build` |
+| Build output directory | `dist/camp-transportation-planner/browser` |
+| Root directory | `/` (repo root) |
+| Node version | `20` (set env `NODE_VERSION=20`, or use [`.nvmrc`](.nvmrc)) |
+
+3. SPA routing is covered by [`public/_redirects`](public/_redirects) (copied into the build output).
+4. After the first deploy, copy the Pages URL (e.g. `https://camp-xxx.pages.dev`) into **Supabase → Authentication → URL Configuration**:
+   - **Site URL**: your Pages URL (or custom domain)
+   - **Redirect URLs**: `https://your-pages-url.pages.dev/**` and `http://localhost:4200/**`
+
+5. Optional: attach a custom domain under Pages → Custom domains.
+
+Do **not** add `SUPABASE_SECRET_KEY` or `DATABASE_URL` as Pages env vars for this frontend — the app only needs the publishable key already in `environment.ts`.
+
 ## First-time flow
 
 1. Register / login  
