@@ -3,18 +3,20 @@ import {
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection,
 } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { routes } from './app.routes';
 import { TRANSPORT_REPOSITORY } from './features/transport-planner/services/transport-repository.token';
-import { LocalStorageTransportRepository } from './features/transport-planner/services/local-storage-transport.repository';
+import { SupabaseTransportRepository } from './features/transport-planner/services/supabase-transport.repository';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
-    provideRouter(routes),
+    provideRouter(routes, withComponentInputBinding()),
     provideAnimationsAsync(),
-    { provide: TRANSPORT_REPOSITORY, useClass: LocalStorageTransportRepository },
+    provideIonicAngular({}),
+    { provide: TRANSPORT_REPOSITORY, useClass: SupabaseTransportRepository },
   ],
 };

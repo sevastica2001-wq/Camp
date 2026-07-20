@@ -1,17 +1,15 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 import { ThemeService } from './core/theme.service';
 import { KeyboardShortcutsService } from './core/keyboard-shortcuts.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
-  template: `<router-outlet />`,
-  styles: `
-    :host {
-      display: block;
-      height: 100%;
-    }
+  imports: [IonApp, IonRouterOutlet],
+  template: `
+    <ion-app>
+      <ion-router-outlet />
+    </ion-app>
   `,
   styleUrl: './app.scss',
 })

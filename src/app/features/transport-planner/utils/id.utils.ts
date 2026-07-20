@@ -1,5 +1,5 @@
-export function createId(prefix = 'id'): string {
-  return `${prefix}_${crypto.randomUUID()}`;
+export function createId(_prefix = 'id'): string {
+  return crypto.randomUUID();
 }
 
 export function normalizeLocation(value: string): string {

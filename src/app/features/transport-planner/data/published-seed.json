@@ -26,7 +26,9 @@
       "carColor": "",
       "availableSeats": 2,
       "existingPassengers": [],
-      "assignedPassengers": []
+      "assignedPassengers": [
+        "pax_b8e6d30f-0141-4e75-bb87-297b9794f5ff"
+      ]
     },
     {
       "id": "drv_908ab56f-1613-4645-ac7a-7206627a543f",
@@ -183,7 +185,8 @@
       "assignedPassengers": [
         "pax_b2dff44c-d513-416f-b85c-cc3d8fc5ac64",
         "pax_7d227cc3-0e2a-434d-95af-90935bc62b8a",
-        "pax_77bf4cb6-85a5-48c3-a907-528ae70d2441"
+        "pax_77bf4cb6-85a5-48c3-a907-528ae70d2441",
+        "pax_f45362b7-517f-49c5-af3c-cc3c164f64f3"
       ]
     },
     {
@@ -1079,6 +1082,20 @@
       "departureLocation": "Bucuresti",
       "returnLocation": "Bucuresti",
       "assignedDriverId": "drv_8845c715-e7fd-47c1-97f5-1b27df3f7112"
+    },
+    {
+      "id": "pax_b8e6d30f-0141-4e75-bb87-297b9794f5ff",
+      "name": "Cojocaru David",
+      "departureLocation": "Brasov",
+      "returnLocation": "Brasov",
+      "assignedDriverId": "drv_30c15271-513d-4da3-bcdc-6fa57540d3d4"
+    },
+    {
+      "id": "pax_f45362b7-517f-49c5-af3c-cc3c164f64f3",
+      "name": "Leahu Teodor",
+      "departureLocation": "Bucuresti",
+      "returnLocation": "Bucuresti",
+      "assignedDriverId": "drv_7e335c78-9aab-468e-b150-953d7e496200"
     }
   ],
   "settings": {

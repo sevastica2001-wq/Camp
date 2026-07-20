@@ -1,50 +1,135 @@
 @use '@angular/material' as mat;
 @use 'tailwindcss';
 
+@import '@ionic/angular/css/core.css';
+@import '@ionic/angular/css/normalize.css';
+@import '@ionic/angular/css/structure.css';
+@import '@ionic/angular/css/typography.css';
+@import '@ionic/angular/css/display.css';
+@import '@ionic/angular/css/padding.css';
+@import '@ionic/angular/css/float-elements.css';
+@import '@ionic/angular/css/text-alignment.css';
+@import '@ionic/angular/css/text-transformation.css';
+@import '@ionic/angular/css/flex-utils.css';
+
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Outdoor / camp design tokens */
 :root {
-  --ctp-bg: #f4f5f7;
-  --ctp-surface: #ffffff;
-  --ctp-surface-2: #f0f1f3;
-  --ctp-border: #e4e6ea;
-  --ctp-text: #1a1d23;
-  --ctp-text-muted: #6b7280;
-  --ctp-accent: #2563eb;
-  --ctp-accent-soft: #eff6ff;
-  --ctp-success: #16a34a;
-  --ctp-success-soft: #dcfce7;
-  --ctp-warning: #d97706;
-  --ctp-warning-soft: #fef3c7;
-  --ctp-danger: #dc2626;
-  --ctp-danger-soft: #fee2e2;
-  --ctp-info: #0284c7;
-  --ctp-info-soft: #e0f2fe;
-  --ctp-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 12px rgb(0 0 0 / 0.04);
-  --ctp-radius: 12px;
-  --ctp-font: 'Segoe UI', 'IBM Plex Sans', system-ui, sans-serif;
-  --ctp-font-display: 'Segoe UI Semibold', 'IBM Plex Sans', system-ui, sans-serif;
+  --ctp-bg: #eef2ea;
+  --ctp-surface: #f7f5f0;
+  --ctp-surface-2: #e8ebe3;
+  --ctp-border: #d4d9ce;
+  --ctp-text: #1c2a22;
+  --ctp-text-muted: #5c6b62;
+  --ctp-accent: #2f6b4f;
+  --ctp-accent-soft: #dce9e1;
+  --ctp-success: #2f8f5b;
+  --ctp-success-soft: #d8f0e3;
+  --ctp-warning: #c47a1a;
+  --ctp-warning-soft: #f7e8d0;
+  --ctp-danger: #b53c32;
+  --ctp-danger-soft: #f6ddd9;
+  --ctp-info: #3a7ca5;
+  --ctp-info-soft: #d7eaf4;
+  --ctp-sky: #5b9ec9;
+  --ctp-sky-soft: #e3f1f8;
+  --ctp-stone: #8a8174;
+  --ctp-shadow: 0 1px 2px rgb(28 42 34 / 0.05), 0 8px 24px rgb(28 42 34 / 0.06);
+  --ctp-radius: 14px;
+  --ctp-font: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
+  --ctp-font-display: 'Fraunces', 'Georgia', serif;
+  --ctp-page-gradient: linear-gradient(
+    165deg,
+    #dce9e1 0%,
+    #eef2ea 38%,
+    #e8f2f7 72%,
+    #f7f5f0 100%
+  );
+
+  /* Ionic ↔ camp tokens */
+  --ion-font-family: var(--ctp-font);
+  --ion-background-color: var(--ctp-bg);
+  --ion-text-color: var(--ctp-text);
+  --ion-border-color: var(--ctp-border);
+  --ion-item-background: var(--ctp-surface);
+  --ion-toolbar-background: transparent;
+  --ion-toolbar-color: var(--ctp-text);
+  --ion-card-background: var(--ctp-surface);
+
+  --ion-color-primary: #2f6b4f;
+  --ion-color-primary-rgb: 47, 107, 79;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #295e45;
+  --ion-color-primary-tint: #447a61;
+
+  --ion-color-secondary: #3a7ca5;
+  --ion-color-secondary-rgb: 58, 124, 165;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #336d91;
+  --ion-color-secondary-tint: #4e89ae;
+
+  --ion-color-success: #2f8f5b;
+  --ion-color-warning: #c47a1a;
+  --ion-color-danger: #b53c32;
+  --ion-color-medium: #5c6b62;
+  --ion-color-light: #f7f5f0;
+
   color-scheme: light;
 }
 
 .dark {
-  --ctp-bg: #0f1115;
-  --ctp-surface: #171a21;
-  --ctp-surface-2: #1e222b;
-  --ctp-border: #2a303c;
-  --ctp-text: #e8eaed;
-  --ctp-text-muted: #9aa3b2;
-  --ctp-accent: #60a5fa;
-  --ctp-accent-soft: #1e3a5f;
-  --ctp-success: #4ade80;
-  --ctp-success-soft: #14532d;
-  --ctp-warning: #fbbf24;
-  --ctp-warning-soft: #78350f;
-  --ctp-danger: #f87171;
-  --ctp-danger-soft: #7f1d1d;
-  --ctp-info: #38bdf8;
-  --ctp-info-soft: #0c4a6e;
-  --ctp-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.35);
+  --ctp-bg: #121814;
+  --ctp-surface: #1a221c;
+  --ctp-surface-2: #232c26;
+  --ctp-border: #334038;
+  --ctp-text: #e8efe9;
+  --ctp-text-muted: #9aaba0;
+  --ctp-accent: #6fbf92;
+  --ctp-accent-soft: #1e3a2c;
+  --ctp-success: #5dca8a;
+  --ctp-success-soft: #163526;
+  --ctp-warning: #e0a84a;
+  --ctp-warning-soft: #3d2e12;
+  --ctp-danger: #e07a70;
+  --ctp-danger-soft: #3d1c19;
+  --ctp-info: #6eb0d4;
+  --ctp-info-soft: #1a3342;
+  --ctp-sky: #6eb0d4;
+  --ctp-sky-soft: #1a3342;
+  --ctp-stone: #a89f92;
+  --ctp-shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 10px 28px rgb(0 0 0 / 0.4);
+  --ctp-page-gradient: linear-gradient(
+    165deg,
+    #152019 0%,
+    #121814 45%,
+    #152028 100%
+  );
+
+  --ion-background-color: var(--ctp-bg);
+  --ion-text-color: var(--ctp-text);
+  --ion-border-color: var(--ctp-border);
+  --ion-item-background: var(--ctp-surface);
+  --ion-card-background: var(--ctp-surface);
+
+  --ion-color-primary: #6fbf92;
+  --ion-color-primary-rgb: 111, 191, 146;
+  --ion-color-primary-contrast: #0f1a14;
+  --ion-color-primary-contrast-rgb: 15, 26, 20;
+  --ion-color-primary-shade: #62a880;
+  --ion-color-primary-tint: #7dc59d;
+
+  --ion-color-secondary: #6eb0d4;
+  --ion-color-secondary-rgb: 110, 176, 212;
+  --ion-color-secondary-contrast: #0f1a14;
+  --ion-color-secondary-shade: #619bbb;
+  --ion-color-secondary-tint: #7db8d8;
+
+  --ion-color-medium: #9aaba0;
+  --ion-color-light: #232c26;
+
   color-scheme: dark;
 }
 
@@ -55,14 +140,242 @@ body {
   font-family: var(--ctp-font);
   background: var(--ctp-bg);
   color: var(--ctp-text);
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
-  min-width: 1100px;
+  min-width: 0;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Shared layout utilities */
+.app-page {
+  min-height: 100%;
+  background: var(--ctp-page-gradient);
+}
+
+.app-page-inner {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 2.5rem;
+}
+
+.app-page-inner--narrow {
+  max-width: 440px;
+}
+
+.app-page-inner--wide {
+  max-width: 1100px;
+}
+
+.app-panel {
+  background: var(--ctp-surface);
+  border: 1px solid var(--ctp-border);
+  border-radius: var(--ctp-radius);
+  box-shadow: var(--ctp-shadow);
+  padding: 1.25rem 1.35rem;
+}
+
+.app-brand {
+  font-family: var(--ctp-font-display);
+  font-weight: 600;
+  font-size: clamp(1.75rem, 5vw, 2.35rem);
+  letter-spacing: -0.02em;
+  color: var(--ctp-text);
+  line-height: 1.15;
+  margin: 0;
+}
+
+.app-brand-sub {
+  margin: 0.5rem 0 0;
+  color: var(--ctp-text-muted);
+  font-size: 1.02rem;
+  line-height: 1.45;
+}
+
+.app-section-title {
+  font-family: var(--ctp-font-display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+  color: var(--ctp-text);
+}
+
+.camp-card-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .camp-card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .camp-card-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.camp-card {
+  display: block;
+  background: var(--ctp-surface);
+  border: 1px solid var(--ctp-border);
+  border-radius: var(--ctp-radius);
+  box-shadow: var(--ctp-shadow);
+  padding: 1.1rem 1.15rem;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.camp-card:hover,
+.camp-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--ctp-accent);
+  box-shadow: 0 8px 28px rgb(47 107 79 / 0.12);
+  outline: none;
+}
+
+.camp-card__title {
+  font-family: var(--ctp-font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+}
+
+.camp-card__meta {
+  color: var(--ctp-text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.auth-shell {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--ctp-page-gradient);
+  padding: 1.5rem 1rem 2rem;
+}
+
+.auth-shell__panel {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  background: color-mix(in srgb, var(--ctp-surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--ctp-border);
+  border-radius: calc(var(--ctp-radius) + 4px);
+  box-shadow: var(--ctp-shadow);
+  padding: 1.75rem 1.5rem 1.5rem;
+  animation: app-rise 420ms ease both;
+}
+
+.auth-shell__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  justify-content: center;
+  margin-top: 1.25rem;
+  font-size: 0.95rem;
+}
+
+.auth-shell__links a {
+  color: var(--ctp-accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.auth-shell__links a:hover {
+  text-decoration: underline;
+}
+
+.stats-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (min-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.stat-tile {
+  background: var(--ctp-surface-2);
+  border-radius: 12px;
+  padding: 0.85rem 0.9rem;
+}
+
+.stat-tile__value {
+  font-family: var(--ctp-font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.stat-tile__label {
+  color: var(--ctp-text-muted);
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+}
+
+.desktop-only-banner {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.9rem 1rem;
+  border-radius: var(--ctp-radius);
+  background: var(--ctp-sky-soft);
+  border: 1px solid color-mix(in srgb, var(--ctp-sky) 35%, var(--ctp-border));
+  color: var(--ctp-text);
+  margin-bottom: 1rem;
+}
+
+.desktop-only-banner p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+@keyframes app-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes app-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.app-fade-in {
+  animation: app-fade 360ms ease both;
+}
+
+/* Desktop planner min-width — only when workbench is shown */
+.planner-desktop-workbench {
+  min-width: 1024px;
 }
 
 .cdk-drag-preview {
@@ -138,8 +451,8 @@ html {
     (
       color: (
         theme-type: light,
-        primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
+        primary: mat.$green-palette,
+        tertiary: mat.$azure-palette,
       ),
       typography: (
         plain-family: var(--ctp-font),
@@ -155,8 +468,8 @@ html {
     (
       color: (
         theme-type: dark,
-        primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
+        primary: mat.$green-palette,
+        tertiary: mat.$azure-palette,
       ),
     )
   );

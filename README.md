@@ -1,8 +1,10 @@
-# Camp Transportation Planner
+# Camp Event Platform
 
-Desktop web app for organizing church camp transportation. Frontend-only, with all data kept in memory and persisted to LocalStorage.
+Ionic Angular + Supabase multi-camp event management system. Transportation planning is one module inside each camp workspace.
 
-## Run
+## Setup
+
+### 1. Install & run
 
 ```bash
 npm install
@@ -11,80 +13,68 @@ npm start
 
 Open http://localhost:4200
 
-## Share data with others (published seed)
+### 2. Apply Supabase SQL
 
-Other people cannot see your LocalStorage. To publish a shared snapshot:
+In the [Supabase SQL Editor](https://supabase.com/dashboard) for project `aegfbbfanpthowfqacyg`, run in order:
 
-1. Enter/edit your data in the app.
-2. Open **Export → Download seed for publish**.
-3. Replace this file with the downloaded file:
-   `src/app/features/transport-planner/data/published-seed.json`
-4. Commit, build, and deploy (e.g. GitHub Pages).
+1. [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) — schema, RLS, invite RPCs  
+2. [`supabase/migrations/0002_storage.sql`](supabase/migrations/0002_storage.sql) — storage buckets (or create buckets in Dashboard)  
+3. [`supabase/migrations/0003_fix_camps_select.sql`](supabase/migrations/0003_fix_camps_select.sql) — camp creator can read after insert  
+4. [`supabase/migrations/0004_permissions_and_roles.sql`](supabase/migrations/0004_permissions_and_roles.sql) — `can_create_camps`, role-aware invites  
 
-### What visitors get
+**Grant camp creation** (platform allowlist) in SQL:
 
-- First visit (empty LocalStorage) → app loads the **published seed**.
-- They can **view and edit locally**; changes stay in **their** browser only.
-- Their edits do **not** sync back to GitHub or other users.
-- **Export → Reset to published seed** restores the shared snapshot (undoable once).
-
-### Update the shared snapshot later
-
-Repeat steps 1–4, then redeploy. Visitors who already edited locally keep their own copy until they reset or clear site data.
-
-## Publish to GitHub Pages
-
-```bash
-# Replace REPO_NAME with your GitHub repository name
-npm run build -- --base-href=/REPO_NAME/
+```sql
+update public.users
+set can_create_camps = true
+where email = 'your@email.com';
 ```
 
-Then upload the contents of `dist/camp-transportation-planner/browser` to GitHub Pages (or use an Action).
+Only users with that flag see **Create camp**. Everyone can **Join** via invite.
 
-## Stack
+### 3. Environment
 
-- Angular 21 (standalone, zoneless, signals)
-- Angular Material + CDK Drag & Drop
-- Tailwind CSS
-- PapaParse (CSV import/export)
-- Angular Animations
+Keys live in:
 
-## Pages
+- [`src/environments/environment.ts`](src/environments/environment.ts)
+- [`src/environments/environment.development.ts`](src/environments/environment.development.ts)
 
-| Route | Purpose |
-|-------|---------|
-| `/planner` | Planning board |
-| `/overview` | Printable transportation overview |
+Use the **publishable/anon** key only in the Angular app. Never put the service-role key in the client.
+
+## First-time flow
+
+1. Register / login  
+2. **My Camps** → create a camp (you become ORGANIZER)  
+3. Open the camp → **Transportation**  
+4. Optional: **Export → Reset to published seed** to import the bundled roster into this camp  
+5. **Settings** → create invitation link `/join/:slug/:code` for participants  
+
+## Routes
+
+| Path | Purpose |
+|------|---------|
+| `/login` `/register` | Auth |
+| `/dashboard` | My camps |
+| `/join/:slug/:code` | Accept invitation |
+| `/camp/:campId/dashboard` | Organizer stats |
+| `/camp/:campId/transportation` | Kanban planner (Supabase-backed) |
+| `/camp/:campId/participants` | Registrations list |
+| `/camp/:campId/registration` | Own transport registration |
+| `/camp/:campId/me` | Participant portal |
+| `/camp/:campId/driver` | Driver portal |
+| `/camp/:campId/settings` | Camp settings, invites, duplicate |
 
 ## Architecture
 
-Feature-based layout under `src/app/features/transport-planner/`.
-
-Business logic lives in services; UI components stay presentational. State is held in `TransportStore` (Angular Signals).
-
-### Swapping LocalStorage for a REST API later
-
-Persistence is isolated behind `ITransportRepository` and the `TRANSPORT_REPOSITORY` token:
-
-1. Implement `ApiTransportRepository` with the same `load` / `save` / `clear` contract.
-2. Change the provider in `app.config.ts` from `LocalStorageTransportRepository` to your API implementation.
-3. Leave `TransportStore`, assignment, validation, and auto-assign services unchanged.
-
-## Features
-
-- Add people via modal (drivers or passengers)
-- Drag passengers between Unassigned and driver cards
-- Driver cards in a 5-column grid
-- Live summary bar, search, filters, problems panel
-- CSV export + full JSON backup/seed for publishing
-- Smart auto-assign by departure city
-- Undo / Redo (`Ctrl+Z` / `Ctrl+Shift+Z`)
-- Light / Dark / System theme
+- **Auth / camp context / permissions** — `src/app/core/`
+- **Camps, participants, dashboards** — `src/app/features/`
+- **Transport** — still under `features/transport-planner`, persisted via `SupabaseTransportRepository` scoped by `CampContextService`
+- **RLS** — users only see camps they belong to; organizers mutate camp data
 
 ## Scripts
 
 ```bash
-npm start      # dev server
-npm run build  # production build
-npm test       # unit tests
+npm start
+npm run build
+npm test
 ```

@@ -10,6 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { TransportStore } from '../../store/transport.store';
 import { ThemeService } from '../../../../core/theme.service';
+import { CampContextService } from '../../../../core/camp-context/camp-context.service';
 import { CommandHistoryService } from '../../services/command-history.service';
 import { ThemeMode } from '../../models/transport.models';
 
@@ -133,7 +134,7 @@ import { ThemeMode } from '../../models/transport.models';
         Auto Assign
       </button>
 
-      <a mat-stroked-button routerLink="/overview">
+      <a mat-stroked-button [routerLink]="overviewLink()">
         <span class="material-symbols-outlined mr-1 text-[18px] align-middle">print</span>
         Overview
       </a>
@@ -173,6 +174,7 @@ export class PlannerToolbar {
   readonly store = inject(TransportStore);
   readonly theme = inject(ThemeService);
   readonly history = inject(CommandHistoryService);
+  private readonly campContext = inject(CampContextService);
 
   readonly addPerson = output<void>();
   readonly exportPassengers = output<void>();
@@ -183,8 +185,13 @@ export class PlannerToolbar {
   readonly resetSeed = output<void>();
   readonly autoAssign = output<void>();
 
+  overviewLink(): string[] {
+    const id = this.campContext.campId();
+    return id ? ['/camp', id, 'overview'] : ['/dashboard'];
+  }
+
   readonly themeLabel = computed(() => {
-    const t = this.store.settings().theme;
+    const t = this.theme.theme();
     return t.charAt(0).toUpperCase() + t.slice(1);
   });
 
@@ -194,6 +201,6 @@ export class PlannerToolbar {
       dark: 'dark_mode',
       system: 'contrast',
     };
-    return map[this.store.settings().theme];
+    return map[this.theme.theme()];
   });
 }

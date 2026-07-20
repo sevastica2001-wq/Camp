@@ -1,9 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideZonelessChangeDetection } from '@angular/core';
+import { provideIonicAngular } from '@ionic/angular/standalone';
 import { App } from './app';
 import { TRANSPORT_REPOSITORY } from './features/transport-planner/services/transport-repository.token';
-import { LocalStorageTransportRepository } from './features/transport-planner/services/local-storage-transport.repository';
+import { SupabaseTransportRepository } from './features/transport-planner/services/supabase-transport.repository';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -27,7 +28,8 @@ describe('App', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([]),
-        { provide: TRANSPORT_REPOSITORY, useClass: LocalStorageTransportRepository },
+        provideIonicAngular({}),
+        { provide: TRANSPORT_REPOSITORY, useClass: SupabaseTransportRepository },
       ],
     }).compileComponents();
   });

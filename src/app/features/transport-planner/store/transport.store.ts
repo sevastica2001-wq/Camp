@@ -7,25 +7,33 @@ import {
   Passenger,
   PlannerFilters,
   ThemeMode,
+  createEmptyState,
 } from '../models/transport.models';
 import { filterDrivers, filterPassengers, uniqueLocations } from '../utils/filter.utils';
 import { computeSummary, detectProblems } from '../validators/transport.validators';
 import { TRANSPORT_REPOSITORY } from '../services/transport-repository.token';
-import { getPublishedSeed } from '../utils/seed.utils';
+import { CampContextService } from '../../../core/camp-context/camp-context.service';
 
 @Injectable({ providedIn: 'root' })
 export class TransportStore {
   private readonly repository = inject(TRANSPORT_REPOSITORY);
-  private readonly _state = signal<AppState>(this.hydrate());
+  private readonly campContext = inject(CampContextService);
+
+  private readonly _state = signal<AppState>(createEmptyState());
   private readonly _search = signal('');
   private readonly _filters = signal<PlannerFilters>({ ...DEFAULT_FILTERS });
   private readonly _focusDriverId = signal<string | null>(null);
+  private readonly _loading = signal(false);
+  private readonly _campId = signal<string | null>(null);
+  private readonly _hydrated = signal(false);
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private skipNextSave = false;
 
   readonly state = this._state.asReadonly();
   readonly search = this._search.asReadonly();
   readonly filters = this._filters.asReadonly();
   readonly focusDriverId = this._focusDriverId.asReadonly();
+  readonly loading = this._loading.asReadonly();
 
   readonly drivers = computed(() => this._state().drivers);
   readonly passengers = computed(() => this._state().passengers);
@@ -71,8 +79,41 @@ export class TransportStore {
   constructor() {
     effect(() => {
       const snapshot = this._state();
-      untracked(() => this.scheduleSave(snapshot));
+      const campId = this._campId();
+      const hydrated = this._hydrated();
+      untracked(() => {
+        if (!hydrated || !campId || this.skipNextSave) {
+          this.skipNextSave = false;
+          return;
+        }
+        this.scheduleSave(campId, snapshot);
+      });
     });
+  }
+
+  async loadForCamp(campId: string): Promise<void> {
+    this._loading.set(true);
+    this._hydrated.set(false);
+    try {
+      const state = await this.repository.load(campId);
+      this.skipNextSave = true;
+      this._campId.set(campId);
+      this._state.set(state);
+      this._hydrated.set(true);
+    } finally {
+      this._loading.set(false);
+    }
+  }
+
+  async ensureLoaded(): Promise<void> {
+    const campId = this.campContext.campId();
+    if (!campId) {
+      return;
+    }
+    if (this._campId() === campId && this._hydrated()) {
+      return;
+    }
+    await this.loadForCamp(campId);
   }
 
   snapshot(): AppState {
@@ -137,23 +178,14 @@ export class TransportStore {
     return this._state().drivers.find((d) => d.id === id);
   }
 
-  private hydrate(): AppState {
-    const loaded = this.repository.load();
-    if (loaded && (loaded.drivers.length > 0 || loaded.passengers.length > 0)) {
-      return loaded;
-    }
-    // Empty LocalStorage (or empty saved state) → load shared published snapshot
-    const seed = getPublishedSeed();
-    this.repository.save(seed);
-    return seed;
-  }
-
-  private scheduleSave(state: AppState): void {
+  private scheduleSave(campId: string, state: AppState): void {
     if (this.saveTimer) {
       clearTimeout(this.saveTimer);
     }
     this.saveTimer = setTimeout(() => {
-      this.repository.save(state);
-    }, 120);
+      void this.repository.save(campId, state).catch((err) => {
+        console.error('Failed to save transport state', err);
+      });
+    }, 400);
   }
 }

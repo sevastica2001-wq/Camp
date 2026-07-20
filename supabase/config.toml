@@ -1,0 +1,5 @@
+# Supabase local / project config
+project_id = "aegfbbfanpthowfqacyg"
+
+[api]
+enabled = true

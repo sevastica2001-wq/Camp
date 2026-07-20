@@ -1,37 +1,49 @@
-import { Injectable, inject, effect } from '@angular/core';
+import { Injectable, effect, signal } from '@angular/core';
 import { ThemeMode } from '../features/transport-planner/models/transport.models';
-import { TransportStore } from '../features/transport-planner/store/transport.store';
+
+const THEME_KEY = 'camp-platform-theme';
 
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
-  private readonly store = inject(TransportStore);
   private readonly mediaQuery =
     typeof window !== 'undefined' && typeof window.matchMedia === 'function'
       ? window.matchMedia('(prefers-color-scheme: dark)')
       : null;
 
+  private readonly _theme = signal<ThemeMode>(this.readInitial());
+
+  readonly theme = this._theme.asReadonly();
+
   constructor() {
     effect(() => {
-      const theme = this.store.settings().theme;
-      this.apply(theme);
+      this.apply(this._theme());
     });
 
     this.mediaQuery?.addEventListener('change', () => {
-      if (this.store.settings().theme === 'system') {
+      if (this._theme() === 'system') {
         this.apply('system');
       }
     });
   }
 
   setTheme(theme: ThemeMode): void {
-    this.store.setTheme(theme);
+    this._theme.set(theme);
+    localStorage.setItem(THEME_KEY, theme);
   }
 
   cycleTheme(): void {
     const order: ThemeMode[] = ['light', 'dark', 'system'];
-    const current = this.store.settings().theme;
+    const current = this._theme();
     const next = order[(order.indexOf(current) + 1) % order.length];
     this.setTheme(next);
+  }
+
+  private readInitial(): ThemeMode {
+    const raw = localStorage.getItem(THEME_KEY);
+    if (raw === 'light' || raw === 'dark' || raw === 'system') {
+      return raw;
+    }
+    return 'system';
   }
 
   private apply(theme: ThemeMode): void {

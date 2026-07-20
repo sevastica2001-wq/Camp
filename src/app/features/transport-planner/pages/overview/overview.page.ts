@@ -1,10 +1,11 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { TransportStore } from '../../store/transport.store';
 import { Driver, Passenger } from '../../models/transport.models';
 import { normalizeLocation } from '../../utils/id.utils';
 import { resolvePassengers } from '../../utils/seat.utils';
+import { CampContextService } from '../../../../core/camp-context/camp-context.service';
 
 interface CityGroup {
   city: string;
@@ -18,16 +19,18 @@ interface CityGroup {
   template: `
     <div class="min-h-full bg-[var(--ctp-bg)]">
       <header
-        class="no-print sticky top-0 z-20 flex items-center justify-between border-b border-[var(--ctp-border)] bg-[var(--ctp-surface)] px-6 py-4"
+        class="no-print sticky top-0 z-20 flex flex-col gap-3 border-b border-[var(--ctp-border)] bg-[var(--ctp-surface)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
       >
         <div>
           <p class="text-xs uppercase tracking-[0.12em] text-[var(--ctp-text-muted)]">
             Camp Transportation Planner
           </p>
-          <h1 class="text-xl font-semibold">Transportation Overview</h1>
+          <h1 class="font-[family-name:var(--ctp-font-display)] text-xl font-semibold">
+            Transportation Overview
+          </h1>
         </div>
-        <div class="flex gap-2">
-          <a mat-stroked-button routerLink="/planner">Back to Planner</a>
+        <div class="flex flex-wrap gap-2">
+          <a mat-stroked-button [routerLink]="backLink()">Back to Planner</a>
           <button mat-flat-button color="primary" type="button" (click)="print()">Print</button>
         </div>
       </header>
@@ -98,8 +101,18 @@ interface CityGroup {
     }
   `,
 })
-export class OverviewPage {
+export class OverviewPage implements OnInit {
   private readonly store = inject(TransportStore);
+  private readonly campContext = inject(CampContextService);
+
+  async ngOnInit(): Promise<void> {
+    await this.store.ensureLoaded();
+  }
+
+  readonly backLink = computed(() => {
+    const id = this.campContext.campId();
+    return id ? ['/camp', id, 'transportation'] : ['/dashboard'];
+  });
 
   readonly groups = computed<CityGroup[]>(() => {
     const passengers = this.store.passengers();
