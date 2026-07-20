@@ -52,8 +52,11 @@ Use the **publishable/anon** key only in the Angular app. Never put the service-
 | Build command | `npm run build` |
 | Build output directory | `dist/camp-transportation-planner/browser` |
 | Root directory | `/` (repo root) |
-| Node version | `20` (set env `NODE_VERSION=20`, or use [`.nvmrc`](.nvmrc)) |
+| Node version | `22` (set env `NODE_VERSION=22`, or use [`.nvmrc`](.nvmrc)) |
 
+**Important:** use a **Pages** project that deploys static output. Do **not** use a Worker deploy step like `npx wrangler versions upload` for this app — that path expects a Worker and newer Wrangler needs Node 22+.
+
+If the dashboard shows a custom **Deploy command**, clear it so Pages only uploads the build output folder.
 3. SPA routing is covered by [`public/_redirects`](public/_redirects) (copied into the build output).
 4. After the first deploy, copy the Pages URL (e.g. `https://camp-xxx.pages.dev`) into **Supabase → Authentication → URL Configuration**:
    - **Site URL**: your Pages URL (or custom domain)
