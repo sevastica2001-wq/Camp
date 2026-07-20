@@ -1,1 +1,163 @@
-/* You can add global styles to this file, and also import other style files */
+@use '@angular/material' as mat;
+@use 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --ctp-bg: #f4f5f7;
+  --ctp-surface: #ffffff;
+  --ctp-surface-2: #f0f1f3;
+  --ctp-border: #e4e6ea;
+  --ctp-text: #1a1d23;
+  --ctp-text-muted: #6b7280;
+  --ctp-accent: #2563eb;
+  --ctp-accent-soft: #eff6ff;
+  --ctp-success: #16a34a;
+  --ctp-success-soft: #dcfce7;
+  --ctp-warning: #d97706;
+  --ctp-warning-soft: #fef3c7;
+  --ctp-danger: #dc2626;
+  --ctp-danger-soft: #fee2e2;
+  --ctp-info: #0284c7;
+  --ctp-info-soft: #e0f2fe;
+  --ctp-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 12px rgb(0 0 0 / 0.04);
+  --ctp-radius: 12px;
+  --ctp-font: 'Segoe UI', 'IBM Plex Sans', system-ui, sans-serif;
+  --ctp-font-display: 'Segoe UI Semibold', 'IBM Plex Sans', system-ui, sans-serif;
+  color-scheme: light;
+}
+
+.dark {
+  --ctp-bg: #0f1115;
+  --ctp-surface: #171a21;
+  --ctp-surface-2: #1e222b;
+  --ctp-border: #2a303c;
+  --ctp-text: #e8eaed;
+  --ctp-text-muted: #9aa3b2;
+  --ctp-accent: #60a5fa;
+  --ctp-accent-soft: #1e3a5f;
+  --ctp-success: #4ade80;
+  --ctp-success-soft: #14532d;
+  --ctp-warning: #fbbf24;
+  --ctp-warning-soft: #78350f;
+  --ctp-danger: #f87171;
+  --ctp-danger-soft: #7f1d1d;
+  --ctp-info: #38bdf8;
+  --ctp-info-soft: #0c4a6e;
+  --ctp-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.35);
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: var(--ctp-font);
+  background: var(--ctp-bg);
+  color: var(--ctp-text);
+}
+
+body {
+  min-width: 1100px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: 10px;
+  box-shadow: var(--ctp-shadow);
+  opacity: 0.95;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.35;
+}
+
+.cdk-drag-animating {
+  transition: transform 200ms cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.drop-list.cdk-drop-list-dragging .passenger-card:not(.cdk-drag-placeholder) {
+  transition: transform 200ms cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.drop-highlight-ok {
+  outline: 2px solid var(--ctp-accent);
+  background: var(--ctp-accent-soft) !important;
+}
+
+.drop-highlight-warn {
+  outline: 2px solid var(--ctp-warning);
+  background: var(--ctp-warning-soft) !important;
+}
+
+.drop-highlight-danger {
+  outline: 2px solid var(--ctp-danger);
+  background: var(--ctp-danger-soft) !important;
+}
+
+.driver-highlight {
+  animation: pulse-highlight 1.2s ease;
+}
+
+@keyframes pulse-highlight {
+  0%,
+  100% {
+    box-shadow: var(--ctp-shadow);
+  }
+  40% {
+    box-shadow: 0 0 0 3px var(--ctp-accent);
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    min-width: 0;
+    background: white;
+    color: black;
+  }
+
+  .print-city {
+    break-after: page;
+  }
+
+  .print-city:last-child {
+    break-after: auto;
+  }
+}
+
+html {
+  @include mat.theme(
+    (
+      color: (
+        theme-type: light,
+        primary: mat.$azure-palette,
+        tertiary: mat.$blue-palette,
+      ),
+      typography: (
+        plain-family: var(--ctp-font),
+        brand-family: var(--ctp-font-display),
+      ),
+      density: 0,
+    )
+  );
+}
+
+.dark {
+  @include mat.theme(
+    (
+      color: (
+        theme-type: dark,
+        primary: mat.$azure-palette,
+        tertiary: mat.$blue-palette,
+      ),
+    )
+  );
+}
