@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, HostBinding, inject, OnInit, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import {
   IonContent,
@@ -16,6 +16,8 @@ import {
   carOutline,
   carSportOutline,
   checkboxOutline,
+  chevronBackOutline,
+  chevronForwardOutline,
   contrastOutline,
   homeOutline,
   logOutOutline,
@@ -41,7 +43,11 @@ addIcons({
   calculatorOutline,
   bedOutline,
   checkboxOutline,
+  chevronBackOutline,
+  chevronForwardOutline,
 });
+
+const SIDEBAR_KEY = 'camp-shell-nav-collapsed';
 
 interface NavItem {
   label: string;
@@ -66,14 +72,34 @@ interface NavItem {
   ],
   template: `
     <ion-split-pane when="(min-width: 992px)" contentId="camp-content">
-      <ion-menu contentId="camp-content" type="overlay" class="camp-menu">
+      <ion-menu
+        contentId="camp-content"
+        type="overlay"
+        class="camp-menu"
+        [class.camp-menu--collapsed]="collapsed()"
+      >
         <div class="camp-nav">
           <header class="camp-nav__brand">
-            <p class="camp-nav__eyebrow">Camp</p>
-            <h1 class="camp-nav__title">{{ campName() }}</h1>
-            @if (campLocation()) {
-              <p class="camp-nav__location">{{ campLocation() }}</p>
-            }
+            <div class="camp-nav__brand-row">
+              <div class="camp-nav__brand-text">
+                <p class="camp-nav__eyebrow">Camp</p>
+                <h1 class="camp-nav__title" [title]="campName()">{{ campName() }}</h1>
+                @if (campLocation()) {
+                  <p class="camp-nav__location" [title]="campLocation()">{{ campLocation() }}</p>
+                }
+              </div>
+              <button
+                type="button"
+                class="camp-nav__collapse"
+                (click)="toggleCollapsed()"
+                [attr.aria-label]="collapsed() ? 'Expand menu' : 'Collapse menu'"
+                [title]="collapsed() ? 'Expand menu' : 'Collapse menu'"
+              >
+                <ion-icon
+                  [name]="collapsed() ? 'chevron-forward-outline' : 'chevron-back-outline'"
+                />
+              </button>
+            </div>
           </header>
 
           <ion-content class="camp-nav__scroll" [scrollY]="true">
@@ -87,6 +113,8 @@ interface NavItem {
                       [routerLink]="item.link"
                       routerLinkActive="camp-nav__tab--active"
                       [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+                      [attr.title]="item.label"
+                      [attr.aria-label]="item.label"
                     >
                       <ion-icon [name]="item.icon" aria-hidden="true" />
                       <span>{{ item.label }}</span>
@@ -103,6 +131,8 @@ interface NavItem {
                       class="camp-nav__tab camp-nav__tab--soon"
                       [routerLink]="item.link"
                       routerLinkActive="camp-nav__tab--active"
+                      [attr.title]="item.label + ' (soon)'"
+                      [attr.aria-label]="item.label + ' (coming soon)'"
                     >
                       <ion-icon [name]="item.icon" aria-hidden="true" />
                       <span>{{ item.label }}</span>
@@ -119,22 +149,41 @@ interface NavItem {
                     class="camp-nav__tab"
                     [routerLink]="settingsLink()"
                     routerLinkActive="camp-nav__tab--active"
+                    title="Settings"
+                    aria-label="Settings"
                   >
                     <ion-icon name="settings-outline" aria-hidden="true" />
                     <span>Settings</span>
                   </a>
                 </ion-menu-toggle>
                 <ion-menu-toggle autoHide="true">
-                  <a class="camp-nav__tab" routerLink="/dashboard">
+                  <a
+                    class="camp-nav__tab"
+                    routerLink="/dashboard"
+                    title="My Camps"
+                    aria-label="My Camps"
+                  >
                     <ion-icon name="arrow-back-outline" aria-hidden="true" />
                     <span>My Camps</span>
                   </a>
                 </ion-menu-toggle>
-                <button type="button" class="camp-nav__tab" (click)="cycleTheme()">
+                <button
+                  type="button"
+                  class="camp-nav__tab"
+                  (click)="cycleTheme()"
+                  [title]="'Theme: ' + themeLabel()"
+                  [attr.aria-label]="'Theme: ' + themeLabel()"
+                >
                   <ion-icon name="contrast-outline" aria-hidden="true" />
                   <span>Theme: {{ themeLabel() }}</span>
                 </button>
-                <button type="button" class="camp-nav__tab" (click)="logout()">
+                <button
+                  type="button"
+                  class="camp-nav__tab"
+                  (click)="logout()"
+                  title="Logout"
+                  aria-label="Logout"
+                >
                   <ion-icon name="log-out-outline" aria-hidden="true" />
                   <span>Logout</span>
                 </button>
@@ -163,6 +212,12 @@ interface NavItem {
       --width: 272px;
       --background: var(--ctp-surface);
       border-right: 1px solid var(--ctp-border);
+      max-width: var(--width);
+      transition: max-width 200ms ease;
+    }
+
+    .camp-menu--collapsed {
+      --width: 72px;
     }
 
     .camp-nav {
@@ -170,11 +225,12 @@ interface NavItem {
       flex-direction: column;
       height: 100%;
       background: var(--ctp-surface);
+      overflow: hidden;
     }
 
     .camp-nav__brand {
       flex-shrink: 0;
-      padding: calc(1.15rem + env(safe-area-inset-top, 0px)) 1.15rem 1rem;
+      padding: calc(0.85rem + env(safe-area-inset-top, 0px)) 0.65rem 0.75rem;
       background:
         linear-gradient(
           160deg,
@@ -183,6 +239,18 @@ interface NavItem {
         ),
         var(--ctp-surface);
       border-bottom: 1px solid var(--ctp-border);
+    }
+
+    .camp-nav__brand-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.35rem;
+    }
+
+    .camp-nav__brand-text {
+      flex: 1;
+      min-width: 0;
+      padding-left: 0.45rem;
     }
 
     .camp-nav__eyebrow {
@@ -196,17 +264,47 @@ interface NavItem {
 
     .camp-nav__title {
       font-family: var(--ctp-font-display);
-      font-size: 1.45rem;
+      font-size: 1.35rem;
       font-weight: 600;
       line-height: 1.2;
-      margin: 0.35rem 0 0;
+      margin: 0.3rem 0 0;
       color: var(--ctp-text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .camp-nav__location {
-      margin: 0.35rem 0 0;
+      margin: 0.3rem 0 0;
       color: var(--ctp-text-muted);
-      font-size: 0.88rem;
+      font-size: 0.85rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .camp-nav__collapse {
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      width: 2.1rem;
+      height: 2.1rem;
+      margin: 0;
+      border: 1px solid var(--ctp-border);
+      border-radius: 10px;
+      background: var(--ctp-surface-2);
+      color: var(--ctp-accent);
+      cursor: pointer;
+    }
+
+    .camp-nav__collapse:hover,
+    .camp-nav__collapse:focus-visible {
+      background: var(--ctp-accent-soft);
+      outline: none;
+    }
+
+    .camp-nav__collapse ion-icon {
+      font-size: 1.15rem;
     }
 
     .camp-nav__scroll {
@@ -219,20 +317,22 @@ interface NavItem {
       display: flex;
       flex-direction: column;
       min-height: 100%;
-      padding: 0.85rem 0.7rem calc(1rem + env(safe-area-inset-bottom, 0px));
+      padding: 0.75rem 0.55rem calc(1rem + env(safe-area-inset-bottom, 0px));
     }
 
     .camp-nav__section {
-      margin: 0.85rem 0.55rem 0.4rem;
+      margin: 0.75rem 0.45rem 0.35rem;
       font-size: 0.68rem;
       letter-spacing: 0.12em;
       text-transform: uppercase;
       font-weight: 700;
       color: var(--ctp-text-muted);
+      white-space: nowrap;
+      overflow: hidden;
     }
 
     .camp-nav__section:first-child {
-      margin-top: 0.15rem;
+      margin-top: 0.1rem;
     }
 
     .camp-nav__tabs {
@@ -253,7 +353,7 @@ interface NavItem {
       gap: 0.7rem;
       width: 100%;
       margin: 0;
-      padding: 0.72rem 0.8rem;
+      padding: 0.72rem 0.75rem;
       border: 0;
       border-radius: 12px;
       background: transparent;
@@ -271,13 +371,16 @@ interface NavItem {
 
     .camp-nav__tab ion-icon {
       flex-shrink: 0;
-      font-size: 1.2rem;
+      font-size: 1.25rem;
       color: var(--ctp-accent);
     }
 
     .camp-nav__tab span {
       flex: 1;
       min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .camp-nav__tab em {
@@ -313,8 +416,81 @@ interface NavItem {
       display: block;
     }
 
+    /* Icon rail */
+    .camp-menu--rail .camp-nav__brand-text,
+    .camp-menu--rail .camp-nav__section,
+    .camp-menu--rail .camp-nav__tab span,
+    .camp-menu--rail .camp-nav__tab em {
+      display: none;
+    }
+
+    .camp-menu--rail .camp-nav__brand-row {
+      justify-content: center;
+    }
+
+    .camp-menu--rail .camp-nav__brand {
+      padding-left: 0.45rem;
+      padding-right: 0.45rem;
+    }
+
+    .camp-menu--rail .camp-nav__inner {
+      padding-left: 0.4rem;
+      padding-right: 0.4rem;
+    }
+
+    .camp-menu--rail .camp-nav__tab {
+      justify-content: center;
+      padding: 0.78rem 0.4rem;
+      gap: 0;
+    }
+
+    .camp-menu--rail .camp-nav__tab--active {
+      box-shadow: none;
+    }
+
+    .camp-menu--rail .camp-nav__tabs--footer {
+      border-top-color: transparent;
+    }
+
     .camp-shell-content {
       background: var(--ctp-page-gradient);
+      min-width: 0;
+    }
+
+    @media (max-width: 991px) {
+      .camp-menu {
+        --width: 280px;
+      }
+
+      .camp-menu--rail {
+        --width: 280px;
+      }
+
+      .camp-menu--rail .camp-nav__brand-text,
+      .camp-menu--rail .camp-nav__section,
+      .camp-menu--rail .camp-nav__tab span,
+      .camp-menu--rail .camp-nav__tab em {
+        display: initial;
+      }
+
+      .camp-menu--rail .camp-nav__tab span {
+        display: block;
+        flex: 1;
+      }
+
+      .camp-menu--rail .camp-nav__tab em {
+        display: inline-block;
+      }
+
+      .camp-menu--rail .camp-nav__tab {
+        justify-content: flex-start;
+        padding: 0.72rem 0.75rem;
+        gap: 0.7rem;
+      }
+
+      .camp-nav__collapse {
+        display: none;
+      }
     }
   `,
 })
@@ -327,10 +503,16 @@ export class CampShellPage implements OnInit {
   readonly campName = computed(() => this.campContext.currentCamp()?.name ?? 'Camp');
   readonly campLocation = computed(() => this.campContext.currentCamp()?.location ?? '');
   readonly showDriverPortal = signal(false);
+  readonly collapsed = signal(this.readCollapsed());
   readonly themeLabel = computed(() => {
     const t = this.theme.theme();
     return t === 'system' ? 'System' : t === 'dark' ? 'Dark' : 'Light';
   });
+
+  @HostBinding('class.shell-collapsed')
+  get hostCollapsed(): boolean {
+    return this.collapsed();
+  }
 
   readonly workspaceItems = computed((): NavItem[] => {
     const items: NavItem[] = [
@@ -364,8 +546,26 @@ export class CampShellPage implements OnInit {
     void this.loadMenuFlags();
   }
 
+  toggleCollapsed(): void {
+    const next = !this.collapsed();
+    this.collapsed.set(next);
+    localStorage.setItem(SIDEBAR_KEY, next ? '1' : '0');
+  }
+
   cycleTheme(): void {
     this.theme.cycleTheme();
+  }
+
+  private readCollapsed(): boolean {
+    try {
+      const raw = localStorage.getItem(SIDEBAR_KEY);
+      if (raw === null) {
+        return true;
+      }
+      return raw === '1';
+    } catch {
+      return true;
+    }
   }
 
   private async loadMenuFlags(): Promise<void> {
