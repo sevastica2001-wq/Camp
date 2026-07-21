@@ -1,0 +1,463 @@
+{
+  "label": "Camp Cristina Voroneț",
+  "totalBeds": 155,
+  "buildings": [
+    {
+      "seedKey": "receptie",
+      "siteName": "Campus",
+      "name": "Cabana mare – Recepție",
+      "sortOrder": 1,
+      "status": "active",
+      "rooms": [
+        {
+          "seedKey": "receptie-p1",
+          "name": "Parter · Camera 1",
+          "floor": "parter",
+          "capacity": 4,
+          "amenities": ["double_bed", "bunk"],
+          "bathType": "private",
+          "sortOrder": 1,
+          "notes": "Pat dublu + pat etajat · baie proprie"
+        },
+        {
+          "seedKey": "receptie-p2",
+          "name": "Parter · Camera 2",
+          "floor": "parter",
+          "capacity": 5,
+          "amenities": ["double_bed", "bunk"],
+          "bathType": "private",
+          "sortOrder": 2,
+          "notes": "Pat dublu + pat etajat · baie proprie"
+        },
+        {
+          "seedKey": "receptie-e1",
+          "name": "Etaj · Camera 1",
+          "floor": "etaj",
+          "capacity": 6,
+          "amenities": ["bunk"],
+          "bathType": "shared_corridor",
+          "sortOrder": 3,
+          "notes": "Paturi etajate · 2 băi pe hol"
+        },
+        {
+          "seedKey": "receptie-e2",
+          "name": "Etaj · Camera 2",
+          "floor": "etaj",
+          "capacity": 4,
+          "amenities": ["bunk"],
+          "bathType": "shared_corridor",
+          "sortOrder": 4,
+          "notes": "Paturi etajate · 2 băi pe hol"
+        },
+        {
+          "seedKey": "receptie-e3",
+          "name": "Etaj · Camera 3",
+          "floor": "etaj",
+          "capacity": 2,
+          "amenities": ["bunk"],
+          "bathType": "shared_corridor",
+          "sortOrder": 5,
+          "notes": "Paturi etajate · 2 băi pe hol"
+        },
+        {
+          "seedKey": "receptie-e4",
+          "name": "Etaj · Camera 4",
+          "floor": "etaj",
+          "capacity": 4,
+          "amenities": ["bunk"],
+          "bathType": "shared_corridor",
+          "sortOrder": 6,
+          "notes": "Paturi etajate · 2 băi pe hol"
+        }
+      ]
+    },
+    {
+      "seedKey": "cabana-1",
+      "siteName": "Campus",
+      "name": "Cabana 1",
+      "sortOrder": 2,
+      "status": "active",
+      "rooms": [
+        {
+          "seedKey": "cabana-1-r1",
+          "name": "Camera 1",
+          "floor": "",
+          "capacity": 6,
+          "amenities": ["bunk"],
+          "bathType": "private",
+          "sortOrder": 1,
+          "notes": "3 paturi etajate · baie proprie"
+        },
+        {
+          "seedKey": "cabana-1-r2",
+          "name": "Camera 2",
+          "floor": "",
+          "capacity": 6,
+          "amenities": ["bunk"],
+          "bathType": "private",
+          "sortOrder": 2,
+          "notes": "3 paturi etajate · baie proprie"
+        }
+      ]
+    },
+    {
+      "seedKey": "cabana-2",
+      "siteName": "Campus",
+      "name": "Cabana 2",
+      "sortOrder": 3,
+      "status": "active",
+      "rooms": [
+        {
+          "seedKey": "cabana-2-r1",
+          "name": "Camera 1",
+          "floor": "",
+          "capacity": 6,
+          "amenities": ["bunk"],
+          "bathType": "private",
+          "sortOrder": 1,
+          "notes": "3 paturi etajate · baie proprie"
+        },
+        {
+          "seedKey": "cabana-2-r2",
+          "name": "Camera 2",
+          "floor": "",
+          "capacity": 6,
+          "amenities": ["bunk"],
+          "bathType": "private",
+          "sortOrder": 2,
+          "notes": "3 paturi etajate · baie proprie"
+        }
+      ]
+    },
+    {
+      "seedKey": "cabana-3",
+      "siteName": "Campus",
+      "name": "Cabana 3",
+      "sortOrder": 4,
+      "status": "active",
+      "rooms": [
+        {
+          "seedKey": "cabana-3-r1",
+          "name": "Camera 1",
+          "floor": "",
+          "capacity": 6,
+          "amenities": ["bunk"],
+          "bathType": "private",
+          "sortOrder": 1,
+          "notes": "3 paturi etajate · baie proprie"
+        },
+        {
+          "seedKey": "cabana-3-r2",
+          "name": "Camera 2",
+          "floor": "",
+          "capacity": 6,
+          "amenities": ["bunk"],
+          "bathType": "private",
+          "sortOrder": 2,
+          "notes": "3 paturi etajate · baie proprie"
+        }
+      ]
+    },
+    {
+      "seedKey": "cabana-4",
+      "siteName": "Campus",
+      "name": "Cabana 4",
+      "sortOrder": 5,
+      "status": "active",
+      "rooms": [
+        {
+          "seedKey": "cabana-4-r1",
+          "name": "Camera 1",
+          "floor": "",
+          "capacity": 4,
+          "amenities": ["double_bed", "bunk", "tv"],
+          "bathType": "private",
+          "sortOrder": 1,
+          "notes": "Pat dublu + pat etajat, TV · baie proprie"
+        },
+        {
+          "seedKey": "cabana-4-r2",
+          "name": "Camera 2",
+          "floor": "",
+          "capacity": 4,
+          "amenities": ["double_bed", "bunk", "tv"],
+          "bathType": "private",
+          "sortOrder": 2,
+          "notes": "Pat dublu + pat etajat, TV · baie proprie"
+        }
+      ]
+    },
+    {
+      "seedKey": "cabana-5",
+      "siteName": "Campus",
+      "name": "Cabana 5",
+      "sortOrder": 6,
+      "status": "active",
+      "rooms": [
+        {
+          "seedKey": "cabana-5-r1",
+          "name": "Camera 1",
+          "floor": "",
+          "capacity": 4,
+          "amenities": ["matrimonial", "bunk", "tv"],
+          "bathType": "private",
+          "sortOrder": 1,
+          "notes": "Pat matrimonial + pat etajat, TV · baie proprie"
+        },
+        {
+          "seedKey": "cabana-5-r2",
+          "name": "Camera 2",
+          "floor": "",
+          "capacity": 4,
+          "amenities": ["matrimonial", "bunk", "tv"],
+          "bathType": "private",
+          "sortOrder": 2,
+          "notes": "Pat matrimonial + pat etajat, TV · baie proprie"
+        }
+      ]
+    },
+    {
+      "seedKey": "cabana-6",
+      "siteName": "Campus",
+      "name": "Cabana 6",
+      "sortOrder": 7,
+      "status": "active",
+      "rooms": [
+        {
+          "seedKey": "cabana-6-p1",
+          "name": "Parter · Camera 1",
+          "floor": "parter",
+          "capacity": 6,
+          "amenities": ["double_bed", "sofa_bed", "bunk"],
+          "bathType": "private",
+          "sortOrder": 1,
+          "notes": "Pat dublu, canapea extensibilă, pat etajat · baie proprie"
+        },
+        {
+          "seedKey": "cabana-6-p2",
+          "name": "Parter · Camera 2",
+          "floor": "parter",
+          "capacity": 6,
+          "amenities": ["double_bed", "sofa_bed", "bunk"],
+          "bathType": "private",
+          "sortOrder": 2,
+          "notes": "Pat dublu, canapea extensibilă, pat etajat · baie proprie"
+        },
+        {
+          "seedKey": "cabana-6-e1",
+          "name": "Etaj · Camera 1",
+          "floor": "etaj",
+          "capacity": 6,
+          "amenities": ["double_bed", "sofa_bed", "bunk"],
+          "bathType": "private",
+          "sortOrder": 3,
+          "notes": "Pat dublu, canapea extensibilă, pat etajat · baie proprie"
+        },
+        {
+          "seedKey": "cabana-6-e2",
+          "name": "Etaj · Camera 2",
+          "floor": "etaj",
+          "capacity": 6,
+          "amenities": ["double_bed", "sofa_bed", "bunk"],
+          "bathType": "private",
+          "sortOrder": 4,
+          "notes": "Pat dublu, canapea extensibilă, pat etajat · baie proprie"
+        }
+      ]
+    },
+    {
+      "seedKey": "cabana-7",
+      "siteName": "Campus",
+      "name": "Cabana 7",
+      "sortOrder": 8,
+      "status": "active",
+      "rooms": [
+        {
+          "seedKey": "cabana-7-r1",
+          "name": "Camera 1",
+          "floor": "",
+          "capacity": 4,
+          "amenities": ["double_bed", "sofa_bed", "tv"],
+          "bathType": "private",
+          "sortOrder": 1,
+          "notes": "Pat dublu + canapea extensibilă, TV · baie proprie"
+        },
+        {
+          "seedKey": "cabana-7-r2",
+          "name": "Camera 2",
+          "floor": "",
+          "capacity": 4,
+          "amenities": ["double_bed", "sofa_bed", "tv"],
+          "bathType": "private",
+          "sortOrder": 2,
+          "notes": "Pat dublu + canapea extensibilă, TV · baie proprie"
+        }
+      ]
+    },
+    {
+      "seedKey": "cabana-8",
+      "siteName": "Campus",
+      "name": "Cabana 8",
+      "sortOrder": 9,
+      "status": "active",
+      "rooms": [
+        {
+          "seedKey": "cabana-8-r1",
+          "name": "Camera 1 (loft)",
+          "floor": "open_loft",
+          "capacity": 6,
+          "amenities": ["double_bed", "sofa_bed", "tv"],
+          "bathType": "private",
+          "sortOrder": 1,
+          "notes": "2 paturi duble etaj + canapea parter, scară interioară, TV · baie proprie"
+        },
+        {
+          "seedKey": "cabana-8-r2",
+          "name": "Camera 2 (loft)",
+          "floor": "open_loft",
+          "capacity": 6,
+          "amenities": ["double_bed", "sofa_bed", "tv"],
+          "bathType": "private",
+          "sortOrder": 2,
+          "notes": "2 paturi duble etaj + canapea parter, scară interioară, TV · baie proprie"
+        }
+      ]
+    },
+    {
+      "seedKey": "cabana-9",
+      "siteName": "Campus",
+      "name": "Cabana 9",
+      "sortOrder": 10,
+      "status": "under_construction",
+      "rooms": []
+    },
+    {
+      "seedKey": "kibutz",
+      "siteName": "Campus",
+      "name": "Kibutz (corp administrativ)",
+      "sortOrder": 11,
+      "status": "active",
+      "rooms": [
+        {
+          "seedKey": "kibutz-r1",
+          "name": "Camera 1",
+          "floor": "",
+          "capacity": 2,
+          "amenities": ["single_bed"],
+          "bathType": "private",
+          "sortOrder": 1,
+          "notes": "2 paturi (1,2m) · baie proprie"
+        },
+        {
+          "seedKey": "kibutz-r2",
+          "name": "Camera 2",
+          "floor": "",
+          "capacity": 2,
+          "amenities": ["single_bed"],
+          "bathType": "private",
+          "sortOrder": 2,
+          "notes": "2 paturi (1,2m) · baie proprie"
+        },
+        {
+          "seedKey": "kibutz-r3",
+          "name": "Camera 3",
+          "floor": "",
+          "capacity": 2,
+          "amenities": ["single_bed"],
+          "bathType": "private",
+          "sortOrder": 3,
+          "notes": "2 paturi (1,2m) · baie proprie"
+        },
+        {
+          "seedKey": "kibutz-r4",
+          "name": "Camera 4",
+          "floor": "",
+          "capacity": 2,
+          "amenities": ["single_bed"],
+          "bathType": "private",
+          "sortOrder": 4,
+          "notes": "2 paturi (1,2m) · baie proprie"
+        },
+        {
+          "seedKey": "kibutz-r5",
+          "name": "Camera 5",
+          "floor": "",
+          "capacity": 2,
+          "amenities": ["single_bed"],
+          "bathType": "private",
+          "sortOrder": 5,
+          "notes": "2 paturi (1,2m) · baie proprie"
+        }
+      ]
+    },
+    {
+      "seedKey": "evergreen",
+      "siteName": "Pensiunea Evergreen",
+      "name": "Pensiunea Evergreen",
+      "sortOrder": 12,
+      "status": "active",
+      "rooms": [
+        {
+          "seedKey": "evergreen-r1",
+          "name": "Camera 1",
+          "floor": "",
+          "capacity": 4,
+          "amenities": ["matrimonial", "sofa_bed", "tv"],
+          "bathType": "private",
+          "sortOrder": 1,
+          "notes": "Pat matrimonial + canapea extensibilă, TV · baie proprie"
+        },
+        {
+          "seedKey": "evergreen-r2",
+          "name": "Camera 2",
+          "floor": "",
+          "capacity": 4,
+          "amenities": ["matrimonial", "sofa_bed", "tv"],
+          "bathType": "private",
+          "sortOrder": 2,
+          "notes": "Pat matrimonial + canapea extensibilă, TV · baie proprie"
+        },
+        {
+          "seedKey": "evergreen-r3",
+          "name": "Camera 3",
+          "floor": "",
+          "capacity": 4,
+          "amenities": ["matrimonial", "sofa_bed", "tv"],
+          "bathType": "private",
+          "sortOrder": 3,
+          "notes": "Pat matrimonial + canapea extensibilă, TV · baie proprie"
+        },
+        {
+          "seedKey": "evergreen-r4",
+          "name": "Camera 4",
+          "floor": "",
+          "capacity": 4,
+          "amenities": ["matrimonial", "sofa_bed", "tv"],
+          "bathType": "private",
+          "sortOrder": 4,
+          "notes": "Pat matrimonial + canapea extensibilă, TV · baie proprie"
+        },
+        {
+          "seedKey": "evergreen-r5",
+          "name": "Camera 5",
+          "floor": "",
+          "capacity": 4,
+          "amenities": ["matrimonial", "sofa_bed", "tv"],
+          "bathType": "private",
+          "sortOrder": 5,
+          "notes": "Pat matrimonial + canapea extensibilă, TV · baie proprie"
+        },
+        {
+          "seedKey": "evergreen-r6",
+          "name": "Camera 6",
+          "floor": "",
+          "capacity": 4,
+          "amenities": ["matrimonial", "sofa_bed", "tv"],
+          "bathType": "private",
+          "sortOrder": 6,
+          "notes": "Pat matrimonial + canapea extensibilă, TV · baie proprie"
+        }
+      ]
+    }
+  ]
+}

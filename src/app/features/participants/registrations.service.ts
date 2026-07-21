@@ -4,6 +4,7 @@ import { CampContextService } from '../../core/camp-context/camp-context.service
 import { SupabaseService } from '../../core/supabase/supabase.service';
 import {
   AttendanceStatus,
+  PersonGender,
   Registration,
   TransportRole,
 } from '../../core/supabase/database.types';
@@ -22,6 +23,8 @@ export interface UpsertRegistrationInput {
   notes?: string;
   attendance_status?: AttendanceStatus;
   user_id?: string | null;
+  gender?: PersonGender;
+  partner_registration_id?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -81,6 +84,8 @@ export class RegistrationsService {
       email: input.email ?? null,
       notes: input.notes ?? null,
       attendance_status: input.attendance_status ?? 'confirmed',
+      gender: input.gender ?? 'unspecified',
+      partner_registration_id: input.partner_registration_id ?? null,
     };
 
     if (existing) {
@@ -126,6 +131,8 @@ export class RegistrationsService {
         email: input.email ?? null,
         notes: input.notes ?? null,
         attendance_status: input.attendance_status ?? 'confirmed',
+        gender: input.gender ?? 'unspecified',
+        partner_registration_id: input.partner_registration_id ?? null,
       })
       .select('*')
       .single();
@@ -133,6 +140,77 @@ export class RegistrationsService {
       throw new Error(error?.message ?? 'Create failed');
     }
     return data as Registration;
+  }
+
+  async linkPartners(aId: string, bId: string | null): Promise<void> {
+    const a = await this.getById(aId);
+    if (!a) {
+      throw new Error('Participant not found');
+    }
+
+    if (!bId) {
+      const partnerId = a.partner_registration_id;
+      const { error: clearA } = await this.supabase.client
+        .from('registrations')
+        .update({ partner_registration_id: null })
+        .eq('id', aId);
+      if (clearA) {
+        throw new Error(clearA.message);
+      }
+      if (partnerId) {
+        const { error: clearB } = await this.supabase.client
+          .from('registrations')
+          .update({ partner_registration_id: null })
+          .eq('id', partnerId);
+        if (clearB) {
+          throw new Error(clearB.message);
+        }
+      }
+      return;
+    }
+
+    const b = await this.getById(bId);
+    if (!b) {
+      throw new Error('Partner not found');
+    }
+    if (b.camp_id !== a.camp_id) {
+      throw new Error('Partner must belong to the same camp');
+    }
+
+    // Clear anyone previously linked to either person
+    for (const id of [aId, bId, a.partner_registration_id, b.partner_registration_id]) {
+      if (!id || id === aId || id === bId) {
+        continue;
+      }
+      await this.supabase.client
+        .from('registrations')
+        .update({ partner_registration_id: null })
+        .eq('id', id);
+    }
+
+    const { error: errA } = await this.supabase.client
+      .from('registrations')
+      .update({ partner_registration_id: bId })
+      .eq('id', aId);
+    if (errA) {
+      throw new Error(errA.message);
+    }
+    const { error: errB } = await this.supabase.client
+      .from('registrations')
+      .update({ partner_registration_id: aId })
+      .eq('id', bId);
+    if (errB) {
+      throw new Error(errB.message);
+    }
+  }
+
+  async getById(registrationId: string): Promise<Registration | null> {
+    const { data } = await this.supabase.client
+      .from('registrations')
+      .select('*')
+      .eq('id', registrationId)
+      .maybeSingle();
+    return (data as Registration) ?? null;
   }
 
   async update(registrationId: string, patch: Partial<Registration>): Promise<Registration> {

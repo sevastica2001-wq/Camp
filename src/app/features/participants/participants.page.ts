@@ -1,8 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
 import {
-  IonBadge,
   IonButton,
   IonButtons,
   IonContent,
@@ -20,20 +19,22 @@ import {
   IonToolbar,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { createOutline, personOutline, refreshOutline, searchOutline } from 'ionicons/icons';
+import { addOutline, createOutline, refreshOutline, searchOutline } from 'ionicons/icons';
 import { CampContextService } from '../../core/camp-context/camp-context.service';
-import { PermissionService } from '../../core/permissions/permission.service';
 import { Registration } from '../../core/supabase/database.types';
+import {
+  AddParticipantDialog,
+  AddParticipantFormResult,
+} from './add-participant.dialog';
 import { RegistrationsService } from './registrations.service';
 
-addIcons({ createOutline, personOutline, refreshOutline, searchOutline });
+addIcons({ addOutline, createOutline, refreshOutline, searchOutline });
 
 @Component({
   selector: 'app-participants-page',
   standalone: true,
   imports: [
     FormsModule,
-    RouterLink,
     IonHeader,
     IonIcon,
     IonToolbar,
@@ -41,7 +42,6 @@ addIcons({ createOutline, personOutline, refreshOutline, searchOutline });
     IonButtons,
     IonMenuButton,
     IonContent,
-    IonBadge,
     IonButton,
     IonInput,
     IonSelect,
@@ -72,32 +72,35 @@ addIcons({ createOutline, personOutline, refreshOutline, searchOutline });
       </ion-refresher>
 
       <div class="app-page">
-        <div class="app-page-inner app-fade-in">
-          <p class="page-eyebrow">People</p>
-          <h1 class="app-brand">Participants</h1>
-          <p class="app-brand-sub">{{ filtered().length }} shown · {{ registrations().length }} total</p>
-
-          <div class="actions">
-            <ion-button expand="block" [routerLink]="registrationLink()">
-              <ion-icon slot="start" name="create-outline" />
-              Register for transport
+        <div class="page-inner app-fade-in">
+          <header class="page-head">
+            <div>
+              <p class="page-eyebrow">People</p>
+              <h1 class="app-brand">Participants</h1>
+              <p class="app-brand-sub">
+                {{ filtered().length }} shown · {{ registrations().length }} total
+              </p>
+            </div>
+            <ion-button class="add-btn" (click)="openAdd()">
+              <ion-icon slot="start" name="add-outline" />
+              Add participant
             </ion-button>
-            <ion-button expand="block" fill="outline" [routerLink]="myRegistrationLink()">
-              <ion-icon slot="start" name="person-outline" />
-              My registration
-            </ion-button>
-          </div>
+          </header>
 
-          <div class="filters app-panel">
+          <div class="toolbar">
             <ion-input
-              label="Search"
+              class="search"
+              label="Search by name"
               labelPlacement="stacked"
               [(ngModel)]="search"
               name="search"
-              placeholder="Name or location"
-              (ionInput)="onSearch($event)"
-            />
+              placeholder="Type a name…"
+              (ionInput)="onSearch()"
+            >
+              <ion-icon slot="start" name="search-outline" aria-hidden="true" />
+            </ion-input>
             <ion-select
+              class="role"
               label="Role"
               labelPlacement="stacked"
               [(ngModel)]="roleFilter"
@@ -105,7 +108,7 @@ addIcons({ createOutline, personOutline, refreshOutline, searchOutline });
               interface="popover"
               (ionChange)="onRoleChange()"
             >
-              <ion-select-option value="ALL">All roles</ion-select-option>
+              <ion-select-option value="ALL">All</ion-select-option>
               <ion-select-option value="DRIVER">Drivers</ion-select-option>
               <ion-select-option value="PASSENGER">Passengers</ion-select-option>
             </ion-select>
@@ -118,23 +121,63 @@ addIcons({ createOutline, personOutline, refreshOutline, searchOutline });
           } @else if (error()) {
             <ion-note color="danger">{{ error() }}</ion-note>
           } @else {
-            <div class="roster">
-              @for (reg of filtered(); track reg.id) {
-                <article class="roster-row">
-                  <div class="roster-row__main">
-                    <h3>{{ reg.display_name }}</h3>
-                    <p>Departure: {{ reg.departure_location || '—' }}</p>
-                    @if (reg.transport_role === 'PASSENGER') {
-                      <p>Driver: {{ driverName(reg) }}</p>
-                    }
-                  </div>
-                  <ion-badge [color]="roleColor(reg.transport_role)">
-                    {{ reg.transport_role }}
-                  </ion-badge>
-                </article>
-              } @empty {
-                <p class="empty">No registrations match your filters</p>
-              }
+            <div class="table-wrap">
+              <table class="participants-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th class="col-center">Gender</th>
+                    <th class="col-center">Driver</th>
+                    <th class="col-center">Place of departure</th>
+                    <th class="col-center">Place after camp</th>
+                    <th>Notes</th>
+                    <th class="col-center col-actions">Edit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (reg of filtered(); track reg.id) {
+                    <tr>
+                      <td class="name-cell">
+                        {{ reg.display_name }}
+                        @if (reg.partner_registration_id) {
+                          <span class="couple-tag">Couple</span>
+                        }
+                      </td>
+                      <td class="col-center">{{ genderLabel(reg.gender) }}</td>
+                      <td class="col-center">
+                        @if (reg.transport_role === 'DRIVER') {
+                          <span class="driver-chip">
+                            Driver
+                            <span class="driver-chip__seats"
+                              >· {{ reg.available_seats }} seats</span
+                            >
+                          </span>
+                        } @else {
+                          {{ driverName(reg) }}
+                        }
+                      </td>
+                      <td class="col-center">{{ cellOrDash(reg.departure_location) }}</td>
+                      <td class="col-center">{{ cellOrDash(reg.return_location) }}</td>
+                      <td class="notes-cell">{{ cellOrDash(reg.notes) }}</td>
+                      <td class="col-center col-actions">
+                        <button
+                          type="button"
+                          class="edit-btn"
+                          title="Edit participant"
+                          aria-label="Edit {{ reg.display_name }}"
+                          (click)="openEdit(reg)"
+                        >
+                          <ion-icon name="create-outline" aria-hidden="true" />
+                        </button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="7" class="empty">No participants match your filters</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
             </div>
           }
         </div>
@@ -146,6 +189,14 @@ addIcons({ createOutline, personOutline, refreshOutline, searchOutline });
       --background: transparent;
     }
 
+    .page-inner {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      padding: 1.25rem 1.25rem 2.5rem;
+      text-align: left;
+    }
+
     .page-eyebrow {
       margin: 0 0 0.35rem;
       font-size: 0.75rem;
@@ -155,71 +206,192 @@ addIcons({ createOutline, personOutline, refreshOutline, searchOutline });
       color: var(--ctp-accent);
     }
 
-    .actions {
-      display: grid;
-      gap: 0.55rem;
-      margin: 1rem 0;
+    .page-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
     }
 
-    .actions ion-button {
+    .add-btn {
       --border-radius: 12px;
-      min-height: 46px;
+      min-height: 44px;
       font-weight: 600;
       margin: 0;
     }
 
-    .filters {
-      display: grid;
-      gap: 0.65rem;
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 0.75rem;
       margin-bottom: 1rem;
     }
 
-    .filters ion-input,
-    .filters ion-select {
-      --background: var(--ctp-surface-2);
+    .toolbar .search {
+      flex: 1 1 240px;
+      max-width: 360px;
+      --background: var(--ctp-surface);
       --padding-start: 10px;
       --padding-end: 10px;
+      border: 1px solid var(--ctp-border);
       border-radius: 10px;
     }
 
-    .roster-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 0.75rem;
-      padding: 0.9rem 0;
-      border-bottom: 1px solid var(--ctp-border);
+    .toolbar .role {
+      flex: 0 0 160px;
+      --background: var(--ctp-surface);
+      --padding-start: 10px;
+      --padding-end: 10px;
+      border: 1px solid var(--ctp-border);
+      border-radius: 10px;
     }
 
-    .roster-row h3 {
-      margin: 0 0 0.25rem;
-      font-size: 1.05rem;
-      font-weight: 600;
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--ctp-border);
+      border-radius: var(--ctp-radius);
+      background: var(--ctp-surface);
+      box-shadow: var(--ctp-shadow);
     }
 
-    .roster-row p {
-      margin: 0.1rem 0 0;
+    .participants-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.92rem;
+    }
+
+    .participants-table th {
+      padding: 0.75rem 1rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
       color: var(--ctp-text-muted);
-      font-size: 0.9rem;
+      border-bottom: 1px solid var(--ctp-border);
+      background: var(--ctp-surface-2);
+      white-space: nowrap;
+    }
+
+    .participants-table td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--ctp-border);
+      vertical-align: middle;
+      color: var(--ctp-text);
+    }
+
+    .participants-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .participants-table tbody tr:hover td {
+      background: color-mix(in srgb, var(--ctp-surface-2) 65%, transparent);
+    }
+
+    .name-cell {
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .couple-tag {
+      margin-left: 0.4rem;
+      display: inline-block;
+      padding: 0.12rem 0.4rem;
+      border-radius: 6px;
+      background: var(--ctp-accent-soft);
+      color: var(--ctp-accent);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      vertical-align: middle;
+    }
+
+    .col-center {
+      text-align: center;
+    }
+
+    .notes-cell {
+      max-width: 280px;
+      color: var(--ctp-text-muted);
+      word-break: break-word;
+    }
+
+    .col-actions {
+      width: 4rem;
+      white-space: nowrap;
+    }
+
+    .edit-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.25rem;
+      height: 2.25rem;
+      border: 1px solid var(--ctp-border);
+      border-radius: 8px;
+      background: var(--ctp-surface-2);
+      color: var(--ctp-text-muted);
+      cursor: pointer;
+      transition:
+        color 0.15s ease,
+        border-color 0.15s ease,
+        background 0.15s ease;
+    }
+
+    .edit-btn:hover {
+      color: var(--ctp-accent);
+      border-color: var(--ctp-accent);
+      background: var(--ctp-accent-soft);
+    }
+
+    .edit-btn ion-icon {
+      font-size: 1.15rem;
+    }
+
+    .driver-chip {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.25rem;
+      padding: 0.28rem 0.55rem;
+      border-radius: 8px;
+      border: 1px solid var(--ctp-accent);
+      background: var(--ctp-accent-soft);
+      color: var(--ctp-accent);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .driver-chip__seats {
+      font-weight: 500;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--ctp-text);
+      opacity: 0.85;
     }
 
     .empty {
+      text-align: left;
       color: var(--ctp-text-muted);
-      text-align: center;
-      padding: 1.5rem 0;
+      padding: 1.5rem 1rem !important;
     }
   `,
 })
 export class ParticipantsPage implements OnInit {
   private readonly campContext = inject(CampContextService);
   private readonly registrationsService = inject(RegistrationsService);
-  private readonly permissions = inject(PermissionService);
+  private readonly dialog = inject(MatDialog);
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly registrations = signal<Registration[]>([]);
   readonly filterTick = signal(0);
-  readonly isOrganizer = computed(() => this.permissions.isOrganizer());
 
   search = '';
   roleFilter: 'ALL' | 'DRIVER' | 'PASSENGER' = 'ALL';
@@ -234,10 +406,7 @@ export class ParticipantsPage implements OnInit {
       if (!q) {
         return true;
       }
-      return (
-        r.display_name.toLowerCase().includes(q) ||
-        (r.departure_location ?? '').toLowerCase().includes(q)
-      );
+      return r.display_name.toLowerCase().includes(q);
     });
   });
 
@@ -247,7 +416,7 @@ export class ParticipantsPage implements OnInit {
     void this.load();
   }
 
-  onSearch(_event: Event): void {
+  onSearch(): void {
     this.filterTick.update((n) => n + 1);
   }
 
@@ -282,27 +451,119 @@ export class ParticipantsPage implements OnInit {
     (event.target as HTMLIonRefresherElement).complete();
   }
 
+  openAdd(): void {
+    const drivers = this.registrations().filter((r) => r.transport_role === 'DRIVER');
+    const ref = this.dialog.open(AddParticipantDialog, {
+      width: '480px',
+      data: { mode: 'add', drivers, people: this.registrations() },
+    });
+    ref.afterClosed().subscribe((result: AddParticipantFormResult | undefined) => {
+      if (result) {
+        void this.createParticipant(result);
+      }
+    });
+  }
+
+  openEdit(reg: Registration): void {
+    const drivers = this.registrations().filter((r) => r.transport_role === 'DRIVER');
+    const ref = this.dialog.open(AddParticipantDialog, {
+      width: '480px',
+      data: {
+        mode: 'edit',
+        registration: reg,
+        drivers,
+        people: this.registrations(),
+      },
+    });
+    ref.afterClosed().subscribe((result: AddParticipantFormResult | undefined) => {
+      if (result?.id) {
+        void this.updateParticipant(result);
+      }
+    });
+  }
+
+  private async createParticipant(form: AddParticipantFormResult): Promise<void> {
+    this.error.set(null);
+    try {
+      const created = await this.registrationsService.createManual({
+        display_name: form.display_name,
+        transport_role: form.transport_role,
+        available_seats: form.available_seats ?? 0,
+        departure_location: form.departure_location,
+        return_location: form.return_location,
+        notes: form.notes,
+        gender: form.gender,
+      });
+      if (
+        form.transport_role === 'PASSENGER' &&
+        form.assigned_driver_registration_id
+      ) {
+        await this.registrationsService.assignPassenger(
+          created.id,
+          form.assigned_driver_registration_id,
+        );
+      }
+      if (form.partner_registration_id) {
+        await this.registrationsService.linkPartners(
+          created.id,
+          form.partner_registration_id,
+        );
+      }
+      await this.load();
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Failed to add participant');
+    }
+  }
+
+  private async updateParticipant(form: AddParticipantFormResult): Promise<void> {
+    if (!form.id) {
+      return;
+    }
+    this.error.set(null);
+    try {
+      await this.registrationsService.update(form.id, {
+        display_name: form.display_name,
+        transport_role: form.transport_role,
+        available_seats: form.available_seats ?? 0,
+        departure_location: form.departure_location ?? '',
+        return_location: form.return_location ?? '',
+        notes: form.notes ?? null,
+        gender: form.gender,
+        assigned_driver_registration_id:
+          form.transport_role === 'DRIVER'
+            ? null
+            : (form.assigned_driver_registration_id ?? null),
+      });
+      await this.registrationsService.linkPartners(
+        form.id,
+        form.partner_registration_id ?? null,
+      );
+      await this.load();
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Failed to update participant');
+    }
+  }
+
   driverName(reg: Registration): string {
     if (!reg.assigned_driver_registration_id) {
-      return 'Unassigned';
+      return '—';
     }
-    return this.driverById.get(reg.assigned_driver_registration_id)?.display_name ?? 'Unknown';
+    return this.driverById.get(reg.assigned_driver_registration_id)?.display_name ?? '—';
   }
 
-  roleColor(role: string): string {
-    return role === 'DRIVER' ? 'secondary' : 'primary';
+  genderLabel(gender: Registration['gender'] | undefined): string {
+    switch (gender) {
+      case 'male':
+        return 'Male';
+      case 'female':
+        return 'Female';
+      default:
+        return '—';
+    }
   }
 
-  registrationLink(): string[] {
-    return [...this.campBase(), 'registration'];
-  }
-
-  myRegistrationLink(): string[] {
-    return [...this.campBase(), 'me'];
-  }
-
-  private campBase(): string[] {
-    const id = this.campContext.campId();
-    return id ? ['/camp', id] : ['/dashboard'];
+  cellOrDash(value: string | null | undefined): string {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : '—';
   }
 }

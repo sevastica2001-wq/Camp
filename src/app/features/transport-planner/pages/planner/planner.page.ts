@@ -3,7 +3,7 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { MatDialog } from '@angular/material/dialog';
 import { animate, style, transition, trigger } from '@angular/animations';
 import { IonButtons, IonHeader, IonMenuButton, IonTitle, IonToolbar } from '@ionic/angular/standalone';
-import { Passenger, Problem } from '../../models/transport.models';
+import { Passenger } from '../../models/transport.models';
 import { TransportStore } from '../../store/transport.store';
 import { AssignmentService } from '../../services/assignment.service';
 import { AutoAssignService } from '../../services/auto-assign.service';
@@ -14,7 +14,6 @@ import { PermissionService } from '../../../../core/permissions/permission.servi
 import { CampContextService } from '../../../../core/camp-context/camp-context.service';
 import { SummaryBar } from '../../components/summary-bar/summary-bar';
 import { PlannerToolbar } from '../../components/planner-toolbar/planner-toolbar';
-import { ProblemsPanel } from '../../components/problems-panel/problems-panel';
 import { DriverColumn } from '../../components/driver-column/driver-column';
 import { PassengerCard } from '../../components/passenger-card/passenger-card';
 import { DriverEditDialog } from '../../dialogs/driver-edit.dialog';
@@ -28,7 +27,6 @@ import { AutoAssignSummaryDialog } from '../../dialogs/auto-assign-summary.dialo
     DragDropModule,
     SummaryBar,
     PlannerToolbar,
-    ProblemsPanel,
     DriverColumn,
     PassengerCard,
     IonHeader,
@@ -78,20 +76,11 @@ import { AutoAssignSummaryDialog } from '../../dialogs/auto-assign-summary.dialo
 
               <p class="page-eyebrow">Transportation</p>
               <h1 class="app-brand">Trip overview</h1>
-              <p class="app-brand-sub">Summary of drivers, passengers, and open problems.</p>
+              <p class="app-brand-sub">Summary of drivers and passengers.</p>
 
               <app-summary-bar [summary]="store.summary()" />
 
               <section class="app-panel mt-4">
-                <h2 class="app-section-title">Problems ({{ store.problems().length }})</h2>
-                @for (problem of store.problems(); track problem.id) {
-                  <p class="problem-line">{{ problem.message }}</p>
-                } @empty {
-                  <p class="empty-line">No problems right now</p>
-                }
-              </section>
-
-              <section class="app-panel mt-3">
                 <h2 class="app-section-title">Unassigned ({{ unassignedCount() }})</h2>
                 @for (p of store.passengers(); track p.id) {
                   @if (!p.assignedDriverId) {
@@ -155,59 +144,53 @@ import { AutoAssignSummaryDialog } from '../../dialogs/auto-assign-summary.dialo
             (change)="onBackupFileSelected($event)"
           />
 
-          <div class="flex min-h-0 flex-1">
-            <app-problems-panel
-              class="no-print"
-              [problems]="store.problems()"
-              (select)="onProblemSelect($event)"
-            />
-
-            <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4" cdkDropListGroup>
-              <section
-                class="flex max-h-[280px] min-h-[180px] flex-col rounded-[var(--ctp-radius)] border border-[var(--ctp-border)] bg-[var(--ctp-surface)] shadow-[var(--ctp-shadow)]"
+          <div class="flex min-h-0 flex-1" cdkDropListGroup>
+            <aside
+              class="no-print flex h-full w-[280px] shrink-0 flex-col border-r border-[var(--ctp-border)] bg-[var(--ctp-surface)]"
+            >
+              <header class="border-b border-[var(--ctp-border)] px-4 py-3">
+                <h2 class="text-sm font-semibold">Unassigned</h2>
+                <p class="text-xs text-[var(--ctp-text-muted)]">
+                  {{ store.filteredUnassigned().length }} passengers · drag onto a driver
+                </p>
+              </header>
+              <div
+                class="drop-list flex flex-1 flex-col gap-2 overflow-y-auto p-3"
+                cdkDropList
+                id="unassigned"
+                cdkDropListOrientation="vertical"
+                [cdkDropListData]="unassignedList()"
+                [cdkDropListConnectedTo]="driverListIds()"
+                (cdkDropListDropped)="onDrop($event, null)"
+                (cdkDropListEntered)="activeDropTarget.set('unassigned')"
+                (cdkDropListExited)="clearHighlight()"
+                [class]="unassignedHighlightClass()"
               >
-                <header class="border-b border-[var(--ctp-border)] px-4 py-3">
-                  <h3 class="text-base font-semibold">Unassigned</h3>
-                  <p class="text-xs text-[var(--ctp-text-muted)]">
-                    {{ store.filteredUnassigned().length }} passengers
-                  </p>
-                </header>
-                <div
-                  class="drop-list flex flex-1 gap-2 overflow-x-auto overflow-y-hidden p-3"
-                  cdkDropList
-                  id="unassigned"
-                  cdkDropListOrientation="horizontal"
-                  [cdkDropListData]="unassignedList()"
-                  [cdkDropListConnectedTo]="driverListIds()"
-                  (cdkDropListDropped)="onDrop($event, null)"
-                  (cdkDropListEntered)="activeDropTarget.set('unassigned')"
-                  (cdkDropListExited)="clearHighlight()"
-                  [class]="unassignedHighlightClass()"
-                >
-                  @for (passenger of store.filteredUnassigned(); track passenger.id) {
-                    <div
-                      class="w-[220px] shrink-0"
-                      cdkDrag
-                      [cdkDragData]="passenger"
-                      (cdkDragStarted)="activePassengerId.set(passenger.id)"
-                      (cdkDragEnded)="clearHighlight()"
-                    >
-                      <app-passenger-card
-                        [passenger]="passenger"
-                        [editable]="true"
-                        (edit)="openEditPerson($event)"
-                      />
-                    </div>
-                  } @empty {
-                    <div
-                      class="flex flex-1 items-center justify-center rounded-lg border border-dashed border-[var(--ctp-border)] p-4 text-center text-xs text-[var(--ctp-text-muted)]"
-                    >
-                      No unassigned passengers — use Add person to create one
-                    </div>
-                  }
-                </div>
-              </section>
+                @for (passenger of store.filteredUnassigned(); track passenger.id) {
+                  <div
+                    class="shrink-0"
+                    cdkDrag
+                    [cdkDragData]="passenger"
+                    (cdkDragStarted)="activePassengerId.set(passenger.id)"
+                    (cdkDragEnded)="clearHighlight()"
+                  >
+                    <app-passenger-card
+                      [passenger]="passenger"
+                      [editable]="true"
+                      (edit)="openEditPerson($event)"
+                    />
+                  </div>
+                } @empty {
+                  <div
+                    class="flex flex-1 items-center justify-center rounded-lg border border-dashed border-[var(--ctp-border)] p-4 text-center text-xs text-[var(--ctp-text-muted)]"
+                  >
+                    No unassigned passengers — use Add person to create one
+                  </div>
+                }
+              </div>
+            </aside>
 
+            <div class="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
               <section class="min-h-0 flex-1">
                 <div class="mb-3 flex items-center justify-between">
                   <h3
@@ -278,7 +261,6 @@ import { AutoAssignSummaryDialog } from '../../dialogs/auto-assign-summary.dialo
       color: var(--ctp-accent);
     }
 
-    .problem-line,
     .roster-line,
     .empty-line {
       margin: 0;
@@ -405,20 +387,6 @@ export class PlannerPage implements OnInit {
     }
 
     this.assignment.dropPassenger(passenger.id, targetDriverId);
-  }
-
-  onProblemSelect(problem: Problem): void {
-    if (problem.driverId) {
-      this.store.setFocusDriver(problem.driverId);
-      queueMicrotask(() => this.store.setFocusDriver(problem.driverId!));
-      return;
-    }
-    if (problem.passengerId) {
-      const passenger = this.store.getPassenger(problem.passengerId);
-      if (passenger?.assignedDriverId) {
-        this.store.setFocusDriver(passenger.assignedDriverId);
-      }
-    }
   }
 
   openEditDriver(driverId: string): void {

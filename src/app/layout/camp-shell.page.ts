@@ -519,7 +519,7 @@ export class CampShellPage implements OnInit {
       { label: 'Dashboard', icon: 'home-outline', link: this.dashboardLink(), exact: true },
       { label: 'Transport planner', icon: 'car-outline', link: this.transportationLink() },
       { label: 'Participants', icon: 'people-outline', link: this.participantsLink() },
-      { label: 'My registration', icon: 'person-outline', link: this.myRegistrationLink() },
+      { label: 'Room management', icon: 'bed-outline', link: this.roomsLink() },
     ];
     if (this.showDriverPortal()) {
       items.push({
@@ -533,12 +533,6 @@ export class CampShellPage implements OnInit {
 
   readonly upcomingItems = computed((): NavItem[] => [
     { label: 'Budgeting', icon: 'calculator-outline', link: this.moduleLink('budgeting'), soon: true },
-    {
-      label: 'Room management',
-      icon: 'bed-outline',
-      link: this.moduleLink('rooms'),
-      soon: true,
-    },
     { label: 'Tasks', icon: 'checkbox-outline', link: this.moduleLink('tasks'), soon: true },
   ]);
 
@@ -600,6 +594,10 @@ export class CampShellPage implements OnInit {
 
   participantsLink(): string[] {
     return [...this.campBase(), 'participants'];
+  }
+
+  roomsLink(): string[] {
+    return [...this.campBase(), 'rooms'];
   }
 
   transportationLink(): string[] {

@@ -29,7 +29,51 @@ export class SupabaseTransportRepository implements ITransportRepository {
   }
 
   async save(campId: string, state: AppState): Promise<void> {
-    const rows = this.stateToRegistrationRows(campId, state);
+    const { data: existingRows } = await this.supabase.client
+      .from('registrations')
+      .select('id, gender, partner_registration_id, user_id')
+      .eq('camp_id', campId);
+    const preserve = new Map(
+      ((existingRows as Array<{
+        id: string;
+        gender: Registration['gender'];
+        partner_registration_id: string | null;
+        user_id: string | null;
+      }>) ?? []).map((r) => [
+        r.id,
+        {
+          gender: r.gender ?? 'unspecified',
+          partner_registration_id: r.partner_registration_id,
+          user_id: r.user_id,
+        },
+      ]),
+    );
+
+    // Lodging assignments cascade-delete with registrations — snapshot & restore.
+    // Tolerate missing lodging tables before migration 0005 is applied.
+    let lodgingSnapshot: Array<{
+      camp_id: string;
+      room_id: string;
+      registration_id: string;
+    }> = [];
+    const { data: lodgingRows, error: lodgingFetchErr } = await this.supabase.client
+      .from('lodging_assignments')
+      .select('camp_id, room_id, registration_id')
+      .eq('camp_id', campId);
+    if (!lodgingFetchErr && lodgingRows) {
+      lodgingSnapshot = lodgingRows as typeof lodgingSnapshot;
+    }
+
+    const rows = this.stateToRegistrationRows(campId, state).map((row) => {
+      const kept = preserve.get(row.id);
+      return {
+        ...row,
+        gender: kept?.gender ?? 'unspecified',
+        partner_registration_id: kept?.partner_registration_id ?? null,
+        user_id: kept?.user_id ?? row.user_id ?? null,
+      };
+    });
+    const survivingIds = new Set(rows.map((r) => r.id));
 
     // Delete existing then insert (simple full replace for planner sync)
     const { error: delErr } = await this.supabase.client
@@ -48,6 +92,7 @@ export class SupabaseTransportRepository implements ITransportRepository {
     const withoutAssign = rows.map((r) => ({
       ...r,
       assigned_driver_registration_id: null as string | null,
+      partner_registration_id: null as string | null,
     }));
 
     const { error: insErr } = await this.supabase.client
@@ -69,6 +114,32 @@ export class SupabaseTransportRepository implements ITransportRepository {
         if (error) {
           throw new Error(error.message);
         }
+      }
+    }
+
+    // Restore partner links
+    for (const row of rows) {
+      if (row.partner_registration_id && survivingIds.has(row.partner_registration_id)) {
+        const { error } = await this.supabase.client
+          .from('registrations')
+          .update({ partner_registration_id: row.partner_registration_id })
+          .eq('id', row.id!);
+        if (error) {
+          throw new Error(error.message);
+        }
+      }
+    }
+
+    // Restore lodging assignments for people who still exist after sync
+    const lodgingRestore = lodgingSnapshot.filter((a) =>
+      survivingIds.has(a.registration_id),
+    );
+    if (lodgingRestore.length) {
+      const { error: lodgingErr } = await this.supabase.client
+        .from('lodging_assignments')
+        .insert(lodgingRestore);
+      if (lodgingErr) {
+        throw new Error(lodgingErr.message);
       }
     }
   }

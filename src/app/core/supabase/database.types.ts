@@ -10,6 +10,10 @@ export type CampRole = 'ADMIN' | 'ORGANIZER' | 'VOLUNTEER' | 'PARTICIPANT';
 export type TransportRole = 'PASSENGER' | 'DRIVER';
 export type AttendanceStatus = 'pending' | 'confirmed' | 'cancelled' | 'waitlist';
 export type MessageTemplateType = 'driver' | 'passenger';
+export type PersonGender = 'male' | 'female' | 'unspecified';
+export type LodgingBuildingStatus = 'active' | 'under_construction' | 'unavailable';
+export type LodgingGenderPolicy = 'unset' | 'male' | 'female' | 'mixed' | 'couple';
+export type LodgingBathType = 'private' | 'shared_corridor' | 'none';
 
 export interface UserProfile {
   id: string;
@@ -63,6 +67,43 @@ export interface Registration {
   email: string | null;
   notes: string | null;
   assigned_driver_registration_id: string | null;
+  gender: PersonGender;
+  partner_registration_id: string | null;
+  created_at: string;
+}
+
+export interface LodgingBuilding {
+  id: string;
+  camp_id: string;
+  site_name: string;
+  name: string;
+  seed_key: string;
+  sort_order: number;
+  status: LodgingBuildingStatus;
+  created_at: string;
+}
+
+export interface LodgingRoom {
+  id: string;
+  camp_id: string;
+  building_id: string;
+  name: string;
+  seed_key: string;
+  floor: string;
+  capacity: number;
+  amenities: string[];
+  bath_type: LodgingBathType;
+  gender_policy: LodgingGenderPolicy;
+  sort_order: number;
+  notes: string;
+  created_at: string;
+}
+
+export interface LodgingAssignment {
+  id: string;
+  camp_id: string;
+  room_id: string;
+  registration_id: string;
   created_at: string;
 }
 
@@ -116,6 +157,21 @@ export type Database = {
         Registration,
         Omit<Registration, 'id' | 'created_at'> & { id?: string },
         Partial<Registration>
+      >;
+      lodging_buildings: TableDef<
+        LodgingBuilding,
+        Omit<LodgingBuilding, 'id' | 'created_at'> & { id?: string },
+        Partial<LodgingBuilding>
+      >;
+      lodging_rooms: TableDef<
+        LodgingRoom,
+        Omit<LodgingRoom, 'id' | 'created_at'> & { id?: string },
+        Partial<LodgingRoom>
+      >;
+      lodging_assignments: TableDef<
+        LodgingAssignment,
+        Omit<LodgingAssignment, 'id' | 'created_at'> & { id?: string },
+        Partial<LodgingAssignment>
       >;
       camp_invitations: TableDef<
         CampInvitation,

@@ -37,8 +37,8 @@ export type { AddPersonFormResult };
   ],
   template: `
     <h2 mat-dialog-title>{{ isEdit() ? 'Edit person' : 'Add person' }}</h2>
-    <mat-dialog-content class="flex flex-col gap-3 pt-2">
-      <mat-form-field appearance="outline" class="w-full">
+    <mat-dialog-content class="flex flex-col gap-4 pt-2">
+      <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
         <mat-label>Full name</mat-label>
         <input matInput [(ngModel)]="name" required autocomplete="name" />
       </mat-form-field>
@@ -63,8 +63,8 @@ export type { AddPersonFormResult };
           <input matInput type="number" min="0" [(ngModel)]="availableSeats" required />
         </mat-form-field>
       } @else {
-        <div class="flex flex-col gap-2">
-          <mat-form-field appearance="outline" class="w-full">
+        <div class="flex flex-col gap-3">
+          <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
             <mat-label>Assign to driver</mat-label>
             <input
               #driverInput
@@ -101,7 +101,7 @@ export type { AddPersonFormResult };
 
           @if (selectedDriver(); as driver) {
             <div
-              class="flex items-center justify-between rounded-xl border border-[var(--ctp-accent)] bg-[var(--ctp-accent-soft)] px-3 py-2"
+              class="driver-pick-status flex items-center justify-between rounded-xl border border-[var(--ctp-accent)] bg-[var(--ctp-accent-soft)] px-3 py-2"
             >
               <div class="min-w-0">
                 <p class="text-[11px] font-medium tracking-wide text-[var(--ctp-accent)] uppercase">
@@ -120,7 +120,7 @@ export type { AddPersonFormResult };
             </div>
           } @else {
             <div
-              class="rounded-xl border border-dashed border-[var(--ctp-border)] bg-[var(--ctp-bg)] px-3 py-2 text-xs text-[var(--ctp-text-muted)]"
+              class="driver-pick-status rounded-xl border border-dashed border-[var(--ctp-border)] bg-[var(--ctp-bg)] px-3 py-2 text-xs text-[var(--ctp-text-muted)]"
             >
               No driver selected — person will stay Unassigned
             </div>
@@ -128,7 +128,7 @@ export type { AddPersonFormResult };
         </div>
       }
 
-      <mat-form-field appearance="outline" class="w-full">
+      <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
         <mat-label>Place of departure</mat-label>
         <input matInput [(ngModel)]="departureLocation" />
       </mat-form-field>
@@ -151,6 +151,12 @@ export type { AddPersonFormResult };
       <button mat-button type="button" mat-dialog-close>Cancel</button>
       <button mat-flat-button color="primary" type="button" (click)="save()">Save</button>
     </mat-dialog-actions>
+  `,
+  styles: `
+    .driver-pick-status {
+      margin-top: 0.25rem;
+      margin-bottom: 0.85rem;
+    }
   `,
 })
 export class AddPersonDialog {

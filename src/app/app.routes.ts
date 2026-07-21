@@ -93,6 +93,12 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'rooms',
+        loadComponent: () =>
+          import('./features/room-management/pages/rooms.page').then((m) => m.RoomsPage),
+      },
+      { path: 'modules/rooms', redirectTo: 'rooms', pathMatch: 'full' },
+      {
         path: 'modules/:module',
         loadComponent: () =>
           import('./features/dashboard/coming-soon.page').then((m) => m.ComingSoonPage),
