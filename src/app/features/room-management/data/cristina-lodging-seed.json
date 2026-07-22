@@ -1,6 +1,6 @@
 {
   "label": "Camp Cristina Voroneț",
-  "totalBeds": 157,
+  "totalBeds": 173,
   "buildings": [
     {
       "seedKey": "receptie",
@@ -305,7 +305,7 @@
           "seedKey": "cabana-8-r1",
           "name": "Camera 1 (loft)",
           "floor": "open_loft",
-          "capacity": 7,
+          "capacity": 6,
           "amenities": ["double_bed", "sofa_bed", "tv"],
           "bathType": "private",
           "sortOrder": 1,
@@ -315,7 +315,7 @@
           "seedKey": "cabana-8-r2",
           "name": "Camera 2 (loft)",
           "floor": "open_loft",
-          "capacity": 7,
+          "capacity": 6,
           "amenities": ["double_bed", "sofa_bed", "tv"],
           "bathType": "private",
           "sortOrder": 2,
@@ -328,8 +328,49 @@
       "siteName": "Campus",
       "name": "Cabana 9",
       "sortOrder": 10,
-      "status": "under_construction",
-      "rooms": []
+      "status": "active",
+      "rooms": [
+        {
+          "seedKey": "cabana-9-p1",
+          "name": "Parter · Camera 1",
+          "floor": "parter",
+          "capacity": 3,
+          "amenities": ["double_bed", "single_bed"],
+          "bathType": "private",
+          "sortOrder": 1,
+          "notes": "Pat dublu + pat simplu · baie proprie"
+        },
+        {
+          "seedKey": "cabana-9-p2",
+          "name": "Parter · Camera 2",
+          "floor": "parter",
+          "capacity": 3,
+          "amenities": ["double_bed", "single_bed"],
+          "bathType": "private",
+          "sortOrder": 2,
+          "notes": "Pat dublu + pat simplu · baie proprie"
+        },
+        {
+          "seedKey": "cabana-9-e1",
+          "name": "Etaj · Camera 1",
+          "floor": "etaj",
+          "capacity": 5,
+          "amenities": ["double_bed", "single_bed"],
+          "bathType": "private",
+          "sortOrder": 3,
+          "notes": "2 paturi duble + pat simplu · baie proprie"
+        },
+        {
+          "seedKey": "cabana-9-e2",
+          "name": "Etaj · Camera 2",
+          "floor": "etaj",
+          "capacity": 5,
+          "amenities": ["double_bed", "single_bed"],
+          "bathType": "private",
+          "sortOrder": 4,
+          "notes": "2 paturi duble + pat simplu · baie proprie"
+        }
+      ]
     },
     {
       "seedKey": "kibutz",

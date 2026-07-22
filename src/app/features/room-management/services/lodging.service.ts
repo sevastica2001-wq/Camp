@@ -124,19 +124,78 @@ export class LodgingService {
       await this.seedCristinaLayout(campId);
       return;
     }
-    // Keep bed counts in sync with the seed for already-seeded camps
+    // Keep bed counts / new seed rooms in sync for already-seeded camps
     // (roommate preference limits must never affect room capacity).
-    await this.syncSeedRoomCapacities(campId);
+    await this.syncSeedLayout(campId);
   }
 
-  /** Updates room capacity/notes from seed by seed_key without wiping assignments. */
-  private async syncSeedRoomCapacities(campId: string): Promise<void> {
-    const { data: rooms, error } = await this.supabase.client
-      .from('lodging_rooms')
-      .select('id, seed_key, capacity, notes')
-      .eq('camp_id', campId);
-    if (error) {
-      throw new Error(error.message);
+  /**
+   * Updates building status and room capacity/notes from seed by seed_key,
+   * and inserts any seed rooms that are missing (e.g. Cabana 9 after construction).
+   */
+  private async syncSeedLayout(campId: string): Promise<void> {
+    const [{ data: buildings, error: bErr }, { data: rooms, error: rErr }] = await Promise.all([
+      this.supabase.client
+        .from('lodging_buildings')
+        .select('id, seed_key, status')
+        .eq('camp_id', campId),
+      this.supabase.client
+        .from('lodging_rooms')
+        .select('id, building_id, seed_key, capacity, notes')
+        .eq('camp_id', campId),
+    ]);
+    if (bErr) {
+      throw new Error(bErr.message);
+    }
+    if (rErr) {
+      throw new Error(rErr.message);
+    }
+
+    const buildingBySeed = new Map(
+      ((buildings as Array<{ id: string; seed_key: string; status: string }>) ?? []).map((b) => [
+        b.seed_key,
+        b,
+      ]),
+    );
+    const existingRoomKeys = new Set(
+      ((rooms as Array<{ seed_key: string }>) ?? []).map((r) => r.seed_key),
+    );
+
+    for (const building of this.seed.buildings) {
+      const row = buildingBySeed.get(building.seedKey);
+      if (!row) {
+        continue;
+      }
+      if (row.status !== building.status) {
+        const { error: updB } = await this.supabase.client
+          .from('lodging_buildings')
+          .update({ status: building.status })
+          .eq('id', row.id);
+        if (updB) {
+          throw new Error(updB.message);
+        }
+      }
+
+      const missing = building.rooms.filter((room) => !existingRoomKeys.has(room.seedKey));
+      if (missing.length) {
+        const roomRows = missing.map((room) => ({
+          camp_id: campId,
+          building_id: row.id,
+          name: room.name,
+          seed_key: room.seedKey,
+          floor: room.floor,
+          capacity: room.capacity,
+          amenities: room.amenities,
+          bath_type: room.bathType as LodgingBathType,
+          gender_policy: 'unset' as const,
+          sort_order: room.sortOrder,
+          notes: room.notes,
+        }));
+        const { error: insErr } = await this.supabase.client.from('lodging_rooms').insert(roomRows);
+        if (insErr) {
+          throw new Error(insErr.message);
+        }
+      }
     }
 
     const seedByKey = new Map<string, { capacity: number; notes: string }>();
