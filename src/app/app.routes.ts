@@ -112,7 +112,17 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/room-management/pages/rooms.page').then((m) => m.RoomsPage),
       },
+      {
+        path: 'schedule',
+        loadComponent: () =>
+          import('./features/schedule/pages/schedule.page').then((m) => m.SchedulePage),
+      },
       { path: 'modules/rooms', redirectTo: 'rooms', pathMatch: 'full' },
+      {
+        path: 'modules/schedule',
+        redirectTo: 'schedule',
+        pathMatch: 'full',
+      },
       {
         path: 'modules/:module',
         canActivate: [rejectViewerGuard],

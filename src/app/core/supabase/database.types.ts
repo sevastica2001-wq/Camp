@@ -14,6 +14,15 @@ export type PersonGender = 'male' | 'female' | 'unspecified';
 export type LodgingBuildingStatus = 'active' | 'under_construction' | 'unavailable';
 export type LodgingGenderPolicy = 'unset' | 'male' | 'female' | 'mixed' | 'couple';
 export type LodgingBathType = 'private' | 'shared_corridor' | 'none';
+export type ScheduleEventCategory =
+  | 'meal'
+  | 'break'
+  | 'session'
+  | 'activity'
+  | 'travel'
+  | 'checkin'
+  | 'checkout'
+  | 'other';
 
 export interface UserProfile {
   id: string;
@@ -135,6 +144,20 @@ export interface MessageTemplate {
   created_at: string;
 }
 
+export interface ScheduleEventRow {
+  id: string;
+  camp_id: string;
+  title: string;
+  starts_at: string;
+  ends_at: string;
+  category: ScheduleEventCategory;
+  location: string;
+  notes: string;
+  sort_order: number;
+  seed_key: string | null;
+  created_at: string;
+}
+
 type TableDef<Row, Insert, Update> = {
   Row: Row;
   Insert: Insert;
@@ -196,6 +219,11 @@ export type Database = {
         Omit<MessageTemplate, 'id' | 'created_at'> & { id?: string },
         Partial<MessageTemplate>
       >;
+      schedule_events: TableDef<
+        ScheduleEventRow,
+        Omit<ScheduleEventRow, 'id' | 'created_at'> & { id?: string },
+        Partial<ScheduleEventRow>
+      >;
     };
     Views: {};
     Functions: {
@@ -222,6 +250,22 @@ export type Database = {
       user_can_create_camps: {
         Args: Record<string, never>;
         Returns: boolean;
+      };
+      seed_schedule_events: {
+        Args: { p_camp_id: string; p_events: unknown };
+        Returns: number;
+      };
+      reseed_schedule_events: {
+        Args: { p_camp_id: string; p_events: unknown };
+        Returns: number;
+      };
+      save_schedule_draft: {
+        Args: {
+          p_camp_id: string;
+          p_upserts: unknown;
+          p_delete_ids?: string[];
+        };
+        Returns: unknown;
       };
     };
   };

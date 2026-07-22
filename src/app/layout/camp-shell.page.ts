@@ -13,6 +13,7 @@ import {
   arrowBackOutline,
   bedOutline,
   calculatorOutline,
+  calendarOutline,
   carOutline,
   carSportOutline,
   checkboxOutline,
@@ -43,6 +44,7 @@ addIcons({
   contrastOutline,
   calculatorOutline,
   bedOutline,
+  calendarOutline,
   checkboxOutline,
   chevronBackOutline,
   chevronForwardOutline,
@@ -529,13 +531,15 @@ export class CampShellPage implements OnInit {
       return [
         { label: 'Transport planner', icon: 'car-outline', link: this.transportationLink() },
         { label: 'Room management', icon: 'bed-outline', link: this.roomsLink() },
+        { label: 'Schedule', icon: 'calendar-outline', link: this.scheduleLink() },
       ];
     }
     const items: NavItem[] = [
       { label: 'Dashboard', icon: 'home-outline', link: this.dashboardLink(), exact: true },
-      { label: 'Transport planner', icon: 'car-outline', link: this.transportationLink() },
       { label: 'Participants', icon: 'people-outline', link: this.participantsLink() },
+      { label: 'Transport planner', icon: 'car-outline', link: this.transportationLink() },
       { label: 'Room management', icon: 'bed-outline', link: this.roomsLink() },
+      { label: 'Schedule', icon: 'calendar-outline', link: this.scheduleLink() },
     ];
     if (this.showDriverPortal()) {
       items.push({
@@ -614,6 +618,10 @@ export class CampShellPage implements OnInit {
 
   roomsLink(): string[] {
     return [...this.campBase(), 'rooms'];
+  }
+
+  scheduleLink(): string[] {
+    return [...this.campBase(), 'schedule'];
   }
 
   transportationLink(): string[] {
