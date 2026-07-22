@@ -166,7 +166,7 @@ export class AuthService {
       return 'Confirm your email before signing in. Check your inbox (and spam), or ask an organizer to confirm your account.';
     }
     if (/invalid login credentials/i.test(error.message ?? '')) {
-      return 'Invalid email or password. If you just registered, confirm your email first, or use Forgot password.';
+      return 'Invalid email or password. Try typing the password manually (not autofill), or use Forgot password to reset it.';
     }
     return error.message ?? 'Sign in failed';
   }

@@ -246,8 +246,12 @@ export class CampsService {
     return data as string;
   }
 
-  /** Accepts `slug/code` or a full `/join/slug/code` URL. */
+  /** Accepts `slug/code`, a full `/join|view/slug/code` URL, or a unique invite code. */
   async joinWithInviteToken(token: string): Promise<string> {
+    const parsed = parseInviteToken(token.trim());
+    if (parsed) {
+      return this.joinWithInvite(parsed.slug, parsed.code);
+    }
     const { data, error } = await this.supabase.client.rpc('join_camp_with_invite_token', {
       p_token: token.trim(),
     });
@@ -297,4 +301,32 @@ export class CampsService {
 
     return created;
   }
+}
+
+/** Parse `slug/code` or a `/join|view/slug/code` URL. Returns null for code-only tokens. */
+export function parseInviteToken(raw: string): { slug: string; code: string } | null {
+  let value = raw.trim();
+  if (!value) {
+    return null;
+  }
+  const joinIdx = value.indexOf('/join/');
+  const viewIdx = value.indexOf('/view/');
+  if (joinIdx >= 0) {
+    value = value.slice(joinIdx + '/join/'.length);
+  } else if (viewIdx >= 0) {
+    value = value.slice(viewIdx + '/view/'.length);
+  }
+  value = value.replace(/^\/+|\/+$/g, '');
+  value = value.split('?')[0]?.split('#')[0] ?? value;
+  const parts = value.split('/').filter(Boolean);
+  if (parts.length >= 2) {
+    return { slug: parts[0], code: parts[1] };
+  }
+  if (value.includes(' ')) {
+    const [slug, code] = value.split(/\s+/);
+    if (slug && code) {
+      return { slug, code };
+    }
+  }
+  return null;
 }

@@ -99,7 +99,9 @@ type CampWithRole = Camp & { role: CampRole };
 
           <section class="app-panel join-panel">
             <h2 class="app-section-title">Join a camp</h2>
-            <p class="join-hint">Paste an invite link, or enter <code>slug/code</code>.</p>
+            <p class="join-hint">
+              Paste an invite link, <code>slug/code</code>, or the invite code alone.
+            </p>
             <ion-list lines="none" class="create-fields">
               <ion-item>
                 <ion-input

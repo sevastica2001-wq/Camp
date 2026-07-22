@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, ViewChild, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
@@ -39,22 +39,26 @@ import { parseGuestViewToken } from './view-camp.page';
             <ion-list lines="none" class="auth-fields">
               <ion-item>
                 <ion-input
+                  #emailInput
                   label="Email"
                   labelPlacement="stacked"
                   type="email"
                   name="email"
                   [(ngModel)]="email"
+                  (ionInput)="email = $any($event).detail.value ?? ''"
                   required
                   autocomplete="email"
                 />
               </ion-item>
               <ion-item>
                 <ion-input
+                  #passwordInput
                   label="Password"
                   labelPlacement="stacked"
                   type="password"
                   name="password"
                   [(ngModel)]="password"
+                  (ionInput)="password = $any($event).detail.value ?? ''"
                   required
                   autocomplete="current-password"
                 />
@@ -182,6 +186,9 @@ import { parseGuestViewToken } from './view-camp.page';
   `,
 })
 export class LoginPage {
+  @ViewChild('emailInput') private emailInput?: IonInput;
+  @ViewChild('passwordInput') private passwordInput?: IonInput;
+
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -198,7 +205,21 @@ export class LoginPage {
     this.error.set(null);
     this.loading.set(true);
     try {
-      const result = await this.auth.login(this.email.trim(), this.password);
+      // Password managers often fill the native <input> without updating ngModel.
+      const [emailNative, passwordNative] = await Promise.all([
+        this.emailInput?.getInputElement(),
+        this.passwordInput?.getInputElement(),
+      ]);
+      const email = String(emailNative?.value ?? this.email).trim();
+      const password = String(passwordNative?.value ?? this.password);
+      if (!email || !password) {
+        this.error.set('Enter both email and password.');
+        return;
+      }
+      this.email = email;
+      this.password = password;
+
+      const result = await this.auth.login(email, password);
       if (result.error) {
         this.error.set(result.error);
         return;
