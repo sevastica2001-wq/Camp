@@ -124,6 +124,26 @@ export class TransportStore {
     this._state.set(structuredClone(state));
   }
 
+  /**
+   * Optimistic local assign/unassign + one PATCH.
+   * Skips the full-camp save effect used by import/bulk replace.
+   */
+  applyPassengerAssignment(
+    passengerId: string,
+    driverId: string | null,
+    nextState: AppState,
+  ): void {
+    this.skipNextSave = true;
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    this._state.set(structuredClone(nextState));
+    void this.repository.assignPassenger(passengerId, driverId).catch((err) => {
+      console.error('Failed to assign passenger', err);
+    });
+  }
+
   setSearch(value: string): void {
     this._search.set(value);
   }

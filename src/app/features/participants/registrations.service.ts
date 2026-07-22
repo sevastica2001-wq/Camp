@@ -353,6 +353,20 @@ export class RegistrationsService {
     return data as Registration;
   }
 
+  async bulkUpdate(registrationIds: string[], patch: Partial<Registration>): Promise<void> {
+    const ids = registrationIds.filter(Boolean);
+    if (!ids.length) {
+      return;
+    }
+    const { error } = await this.supabase.client
+      .from('registrations')
+      .update(patch)
+      .in('id', ids);
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
   async assignPassenger(passengerId: string, driverId: string | null): Promise<void> {
     const { error } = await this.supabase.client
       .from('registrations')

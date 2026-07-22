@@ -191,22 +191,28 @@ export class CommandHistoryService {
   assignPassenger(passengerId: string, driverId: string): void {
     const previous = this.snapshotState();
     const next = this.buildAssignState(previous, passengerId, driverId);
+    const previousDriverId =
+      previous.passengers.find((p) => p.id === passengerId)?.assignedDriverId ?? null;
     this.execute({
       type: 'assign',
       label: 'Assign passenger',
-      undo: () => this.store.replaceState(previous),
-      redo: () => this.store.replaceState(next),
+      undo: () =>
+        this.store.applyPassengerAssignment(passengerId, previousDriverId, previous),
+      redo: () => this.store.applyPassengerAssignment(passengerId, driverId, next),
     });
   }
 
   unassignPassenger(passengerId: string): void {
     const previous = this.snapshotState();
     const next = this.buildUnassignState(previous, passengerId);
+    const previousDriverId =
+      previous.passengers.find((p) => p.id === passengerId)?.assignedDriverId ?? null;
     this.execute({
       type: 'unassign',
       label: 'Unassign passenger',
-      undo: () => this.store.replaceState(previous),
-      redo: () => this.store.replaceState(next),
+      undo: () =>
+        this.store.applyPassengerAssignment(passengerId, previousDriverId, previous),
+      redo: () => this.store.applyPassengerAssignment(passengerId, null, next),
     });
   }
 

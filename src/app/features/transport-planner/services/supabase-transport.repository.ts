@@ -154,6 +154,16 @@ export class SupabaseTransportRepository implements ITransportRepository {
     }
   }
 
+  async assignPassenger(passengerId: string, driverId: string | null): Promise<void> {
+    const { error } = await this.supabase.client
+      .from('registrations')
+      .update({ assigned_driver_registration_id: driverId })
+      .eq('id', passengerId);
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
   private registrationsToState(rows: Registration[]): AppState {
     const drivers: Driver[] = [];
     const passengers: Passenger[] = [];

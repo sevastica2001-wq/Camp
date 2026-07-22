@@ -751,33 +751,39 @@ export class ParticipantsPage implements OnInit {
         }
       }
 
+      const bulkPatch: Partial<Registration> = {};
+      if (patch.gender !== undefined) {
+        bulkPatch.gender = patch.gender;
+      }
+      if (patch.departure_location !== undefined) {
+        bulkPatch.departure_location = patch.departure_location;
+      }
+      if (patch.return_location !== undefined) {
+        bulkPatch.return_location = patch.return_location;
+      }
+      if (patch.notes !== undefined) {
+        bulkPatch.notes = patch.notes;
+      }
+      if (patch.transport_role !== undefined) {
+        bulkPatch.transport_role = patch.transport_role;
+        bulkPatch.available_seats = patch.available_seats ?? 0;
+        bulkPatch.assigned_driver_registration_id =
+          patch.transport_role === 'DRIVER'
+            ? null
+            : (patch.assigned_driver_registration_id ?? null);
+      }
+
+      if (Object.keys(bulkPatch).length) {
+        await this.registrationsService.bulkUpdate(scopedIds, bulkPatch);
+      }
+
+      // Partner links + roommate preferences need per-row reconciliation.
       for (const id of scopedIds) {
-        const rowPatch: Partial<Registration> = {};
-        if (patch.gender !== undefined) {
-          rowPatch.gender = patch.gender;
-        }
-        if (patch.departure_location !== undefined) {
-          rowPatch.departure_location = patch.departure_location;
-        }
-        if (patch.return_location !== undefined) {
-          rowPatch.return_location = patch.return_location;
-        }
-        if (patch.notes !== undefined) {
-          rowPatch.notes = patch.notes;
-        }
-        if (patch.transport_role !== undefined) {
-          rowPatch.transport_role = patch.transport_role;
-          rowPatch.available_seats = patch.available_seats ?? 0;
-          rowPatch.assigned_driver_registration_id =
-            patch.transport_role === 'DRIVER'
-              ? null
-              : (patch.assigned_driver_registration_id ?? null);
-        }
-        if (Object.keys(rowPatch).length) {
-          await this.registrationsService.update(id, rowPatch);
-        }
         if (patch.partner_registration_id !== undefined) {
-          await this.registrationsService.linkPartners(id, patch.partner_registration_id);
+          await this.registrationsService.linkPartners(
+            id,
+            patch.partner_registration_id,
+          );
         }
         if (patch.roommate_ids !== undefined) {
           await this.registrationsService.setRoommates(
