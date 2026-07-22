@@ -130,8 +130,8 @@ export class LodgingService {
   }
 
   /**
-   * Updates building status and room capacity/notes from seed by seed_key,
-   * and inserts any seed rooms that are missing (e.g. Cabana 9 after construction).
+   * Syncs seed buildings/rooms: status, capacity/notes, insert missing rooms,
+   * and remove obsolete seed rooms (e.g. Kibutz cameras 4–5).
    */
   private async syncSeedLayout(campId: string): Promise<void> {
     const [{ data: buildings, error: bErr }, { data: rooms, error: rErr }] = await Promise.all([
@@ -199,9 +199,41 @@ export class LodgingService {
     }
 
     const seedByKey = new Map<string, { capacity: number; notes: string }>();
+    const validSeedRoomKeys = new Set<string>();
     for (const building of this.seed.buildings) {
       for (const room of building.rooms) {
         seedByKey.set(room.seedKey, { capacity: room.capacity, notes: room.notes });
+        validSeedRoomKeys.add(room.seedKey);
+      }
+    }
+
+    const seedBuildingIds = new Set(
+      [...buildingBySeed.values()]
+        .filter((b) => this.seed.buildings.some((sb) => sb.seedKey === b.seed_key))
+        .map((b) => b.id),
+    );
+
+    // Drop obsolete seed rooms (e.g. Kibutz cameras 4–5) without wiping custom rooms.
+    const obsolete = ((rooms as Array<{ id: string; building_id: string; seed_key: string }>) ?? []).filter(
+      (row) =>
+        !!row.seed_key &&
+        seedBuildingIds.has(row.building_id) &&
+        !validSeedRoomKeys.has(row.seed_key),
+    );
+    for (const row of obsolete) {
+      const { error: delAssignErr } = await this.supabase.client
+        .from('lodging_assignments')
+        .delete()
+        .eq('room_id', row.id);
+      if (delAssignErr) {
+        throw new Error(delAssignErr.message);
+      }
+      const { error: delRoomErr } = await this.supabase.client
+        .from('lodging_rooms')
+        .delete()
+        .eq('id', row.id);
+      if (delRoomErr) {
+        throw new Error(delRoomErr.message);
       }
     }
 
@@ -211,6 +243,9 @@ export class LodgingService {
       capacity: number;
       notes: string;
     }>) ?? []) {
+      if (obsolete.some((o) => o.id === row.id)) {
+        continue;
+      }
       const seed = seedByKey.get(row.seed_key);
       if (!seed) {
         continue;

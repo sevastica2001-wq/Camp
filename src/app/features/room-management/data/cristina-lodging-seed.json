@@ -1,6 +1,6 @@
 {
   "label": "Camp Cristina Voroneț",
-  "totalBeds": 173,
+  "totalBeds": 169,
   "buildings": [
     {
       "seedKey": "receptie",
@@ -407,26 +407,6 @@
           "amenities": ["single_bed"],
           "bathType": "private",
           "sortOrder": 3,
-          "notes": "2 paturi (1,2m) · baie proprie"
-        },
-        {
-          "seedKey": "kibutz-r4",
-          "name": "Camera 4",
-          "floor": "",
-          "capacity": 2,
-          "amenities": ["single_bed"],
-          "bathType": "private",
-          "sortOrder": 4,
-          "notes": "2 paturi (1,2m) · baie proprie"
-        },
-        {
-          "seedKey": "kibutz-r5",
-          "name": "Camera 5",
-          "floor": "",
-          "capacity": 2,
-          "amenities": ["single_bed"],
-          "bathType": "private",
-          "sortOrder": 5,
           "notes": "2 paturi (1,2m) · baie proprie"
         }
       ]
