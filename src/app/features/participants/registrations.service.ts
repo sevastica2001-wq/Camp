@@ -8,6 +8,7 @@ import {
   Registration,
   TransportRole,
 } from '../../core/supabase/database.types';
+import { MAX_ROOMMATES_PER_PERSON } from './roommate.constants';
 
 export interface UpsertRegistrationInput {
   display_name: string;
@@ -268,6 +269,11 @@ export class RegistrationsService {
       throw new Error('Roommate preferences must stay within the participant camp');
     }
     const unique = [...new Set(roommateIds.filter((rid) => rid && rid !== registrationId))];
+    if (unique.length > MAX_ROOMMATES_PER_PERSON) {
+      throw new Error(
+        `A person can have at most ${MAX_ROOMMATES_PER_PERSON} preferred roommates`,
+      );
+    }
 
     for (const roommateId of unique) {
       const roommate = await this.getById(roommateId);

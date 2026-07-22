@@ -16,6 +16,7 @@ import {
 } from '@angular/material/autocomplete';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { PersonGender, Registration } from '../../core/supabase/database.types';
+import { MAX_ROOMMATES_PER_PERSON } from './roommate.constants';
 
 export interface BatchEditParticipantsDialogData {
   count: number;
@@ -133,7 +134,7 @@ const UNASSIGNED_OPTION = { id: '', display_name: 'Unassigned' } as Registration
                 matInput
                 type="text"
                 placeholder="Type to search and add…"
-                [disabled]="!applyRoommates"
+                [disabled]="!applyRoommates || atRoommateLimit()"
                 [ngModel]="roommateQuery()"
                 (ngModelChange)="onRoommateQueryChange($event)"
                 [matAutocomplete]="roommateAuto"
@@ -146,6 +147,13 @@ const UNASSIGNED_OPTION = { id: '', display_name: 'Unassigned' } as Registration
                   <mat-option [value]="person">{{ person.display_name }}</mat-option>
                 }
               </mat-autocomplete>
+              @if (atRoommateLimit()) {
+                <mat-hint>
+                  Maximum of {{ maxRoommates }} roommates — remove one to add another
+                </mat-hint>
+              } @else {
+                <mat-hint>Up to {{ maxRoommates }} people (links both ways)</mat-hint>
+              }
             </mat-form-field>
             @if (selectedRoommates().length) {
               <ul class="chip-list">
@@ -371,6 +379,7 @@ export class BatchEditParticipantsDialog {
 
   readonly noneOption = NONE_OPTION;
   readonly unassignedOption = UNASSIGNED_OPTION;
+  readonly maxRoommates = MAX_ROOMMATES_PER_PERSON;
 
   readonly selectedIdSet = new Set(this.data.selectedIds);
   readonly drivers = (this.data.drivers ?? []).filter((d) => !this.selectedIdSet.has(d.id));
@@ -441,6 +450,10 @@ export class BatchEditParticipantsDialog {
       .filter((p): p is Registration => !!p),
   );
 
+  readonly atRoommateLimit = computed(
+    () => this.roommateIds().length >= MAX_ROOMMATES_PER_PERSON,
+  );
+
   setGender(value: 'male' | 'female'): void {
     if (!this.applyGender) {
       return;
@@ -487,7 +500,16 @@ export class BatchEditParticipantsDialog {
   onRoommateSelected(event: MatAutocompleteSelectedEvent, input: HTMLInputElement): void {
     const value = event.option.value as Registration;
     if (value?.id) {
-      this.roommateIds.update((ids) => (ids.includes(value.id) ? ids : [...ids, value.id]));
+      if (this.roommateIds().length >= MAX_ROOMMATES_PER_PERSON) {
+        this.error.set(
+          `Maximum of ${MAX_ROOMMATES_PER_PERSON} roommates — remove one to add another`,
+        );
+      } else {
+        this.roommateIds.update((ids) =>
+          ids.includes(value.id) ? ids : [...ids, value.id],
+        );
+        this.error.set(null);
+      }
     }
     this.roommateQuery.set('');
     input.value = '';
@@ -557,6 +579,12 @@ export class BatchEditParticipantsDialog {
     }
 
     if (this.applyRoommates) {
+      if (this.roommateIds().length > MAX_ROOMMATES_PER_PERSON) {
+        this.error.set(
+          `A person can have at most ${MAX_ROOMMATES_PER_PERSON} preferred roommates`,
+        );
+        return;
+      }
       result.roommate_ids = [...this.roommateIds()];
       any = true;
     }

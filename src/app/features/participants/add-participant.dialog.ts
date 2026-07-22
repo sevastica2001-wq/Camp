@@ -15,6 +15,7 @@ import {
 } from '@angular/material/autocomplete';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Registration, PersonGender } from '../../core/supabase/database.types';
+import { MAX_ROOMMATES_PER_PERSON } from './roommate.constants';
 
 export interface AddParticipantDialogData {
   drivers: Registration[];
@@ -120,6 +121,7 @@ const UNASSIGNED_OPTION = { id: '', display_name: 'Unassigned' } as Registration
               matInput
               type="text"
               placeholder="Type to search and add…"
+              [disabled]="atRoommateLimit()"
               [ngModel]="roommateQuery()"
               (ngModelChange)="onRoommateQueryChange($event)"
               [matAutocomplete]="roommateAuto"
@@ -139,7 +141,16 @@ const UNASSIGNED_OPTION = { id: '', display_name: 'Unassigned' } as Registration
                 <mat-option disabled>No matches for “{{ roommateQuery() }}”</mat-option>
               }
             </mat-autocomplete>
-            <mat-hint>Add one or more — links both ways; they move together into rooms</mat-hint>
+            @if (atRoommateLimit()) {
+              <mat-hint class="roommate-limit-hint">
+                Maximum of {{ maxRoommates }} roommates reached — remove one to add another
+              </mat-hint>
+            } @else {
+              <mat-hint
+                >Add up to {{ maxRoommates }} — links both ways; they move together into
+                rooms</mat-hint
+              >
+            }
           </mat-form-field>
 
           @if (selectedRoommates().length) {
@@ -351,6 +362,10 @@ const UNASSIGNED_OPTION = { id: '', display_name: 'Unassigned' } as Registration
     .clear-roommates-btn:hover {
       background: color-mix(in srgb, var(--ctp-danger) 10%, transparent);
     }
+
+    .roommate-limit-hint {
+      color: var(--ctp-warning) !important;
+    }
   `,
 })
 export class AddParticipantDialog {
@@ -362,6 +377,7 @@ export class AddParticipantDialog {
 
   readonly noneOption = NONE_OPTION;
   readonly unassignedOption = UNASSIGNED_OPTION;
+  readonly maxRoommates = MAX_ROOMMATES_PER_PERSON;
   readonly isEdit = this.data.mode === 'edit' && !!this.data.registration;
   readonly editId = this.data.registration?.id;
 
@@ -429,6 +445,10 @@ export class AddParticipantDialog {
       .filter((p): p is Registration => !!p),
   );
 
+  readonly atRoommateLimit = computed(
+    () => this.roommateIds().length >= MAX_ROOMMATES_PER_PERSON,
+  );
+
   name = this.data.registration?.display_name ?? '';
   isDriver = this.data.registration?.transport_role === 'DRIVER';
   availableSeats: number | null = this.data.registration?.available_seats ?? 4;
@@ -492,7 +512,16 @@ export class AddParticipantDialog {
   onRoommateSelected(event: MatAutocompleteSelectedEvent, input: HTMLInputElement): void {
     const value = event.option.value as Registration;
     if (value?.id) {
-      this.roommateIds.update((ids) => (ids.includes(value.id) ? ids : [...ids, value.id]));
+      if (this.roommateIds().length >= MAX_ROOMMATES_PER_PERSON) {
+        this.error.set(
+          `Maximum of ${MAX_ROOMMATES_PER_PERSON} roommates — remove one to add another`,
+        );
+      } else {
+        this.roommateIds.update((ids) =>
+          ids.includes(value.id) ? ids : [...ids, value.id],
+        );
+        this.error.set(null);
+      }
     }
     this.roommateQuery.set('');
     input.value = '';

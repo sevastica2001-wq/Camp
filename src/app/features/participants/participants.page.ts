@@ -1,6 +1,8 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
+import { MatMenuModule } from '@angular/material/menu';
 import {
   IonButton,
   IonButtons,
@@ -35,6 +37,7 @@ import {
   BatchEditParticipantsDialog,
   BatchEditParticipantsResult,
 } from './batch-edit-participants.dialog';
+import { MAX_ROOMMATE_LINK_SELECTION } from './roommate.constants';
 import { RegistrationsService } from './registrations.service';
 
 addIcons({ addOutline, createOutline, optionsOutline, refreshOutline, searchOutline });
@@ -44,6 +47,8 @@ addIcons({ addOutline, createOutline, optionsOutline, refreshOutline, searchOutl
   standalone: true,
   imports: [
     FormsModule,
+    MatButtonModule,
+    MatMenuModule,
     IonHeader,
     IonIcon,
     IonToolbar,
@@ -96,11 +101,29 @@ addIcons({ addOutline, createOutline, optionsOutline, refreshOutline, searchOutl
                 class="batch-btn"
                 fill="outline"
                 [disabled]="selectedCount() === 0"
-                (click)="openBatchEdit()"
+                [matMenuTriggerFor]="batchMenu"
               >
                 <ion-icon slot="start" name="options-outline" />
                 Batch functions
               </ion-button>
+              <mat-menu #batchMenu="matMenu">
+                <button mat-menu-item type="button" (click)="openBatchEdit()">
+                  Edit fields…
+                </button>
+                <button
+                  mat-menu-item
+                  type="button"
+                  [disabled]="!canLinkRoommates()"
+                  (click)="linkSelectedAsRoommates()"
+                >
+                  Link as roommates
+                  @if (selectedCount() > maxLinkSelection) {
+                    <span class="menu-hint"> · max {{ maxLinkSelection }} for this</span>
+                  } @else if (selectedCount() === 1) {
+                    <span class="menu-hint"> · select at least 2</span>
+                  }
+                </button>
+              </mat-menu>
               <ion-button class="add-btn" (click)="openAdd()">
                 <ion-icon slot="start" name="add-outline" />
                 Add participant
@@ -139,9 +162,12 @@ addIcons({ addOutline, createOutline, optionsOutline, refreshOutline, searchOutl
             <div class="ion-text-center ion-padding">
               <ion-spinner />
             </div>
-          } @else if (error()) {
+          } @else if (error() && registrations().length === 0) {
             <ion-note color="danger">{{ error() }}</ion-note>
           } @else {
+            @if (error()) {
+              <ion-note color="danger" class="batch-error">{{ error() }}</ion-note>
+            }
             <div class="table-wrap">
               <table class="participants-table">
                 <thead>
@@ -273,6 +299,17 @@ addIcons({ addOutline, createOutline, optionsOutline, refreshOutline, searchOutl
 
     .batch-btn {
       --border-width: 1px;
+    }
+
+    .menu-hint {
+      color: var(--ctp-text-muted);
+      font-size: 0.75rem;
+    }
+
+    .batch-error {
+      display: block;
+      margin-bottom: 0.75rem;
+      white-space: pre-line;
     }
 
     .toolbar {
@@ -468,6 +505,7 @@ export class ParticipantsPage implements OnInit {
 
   search = '';
   roleFilter: 'ALL' | 'DRIVER' | 'PASSENGER' = 'ALL';
+  readonly maxLinkSelection = MAX_ROOMMATE_LINK_SELECTION;
 
   readonly filtered = computed(() => {
     this.filterTick();
@@ -501,6 +539,11 @@ export class ParticipantsPage implements OnInit {
     return n > 0 && n < rows.length;
   });
 
+  readonly canLinkRoommates = computed(() => {
+    const n = this.selectedCount();
+    return n >= 2 && n <= MAX_ROOMMATE_LINK_SELECTION;
+  });
+
   private driverById = new Map<string, Registration>();
 
   ngOnInit(): void {
@@ -521,6 +564,7 @@ export class ParticipantsPage implements OnInit {
 
   toggleSelected(id: string, event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
+    this.error.set(null);
     this.selectedIds.update((prev) => {
       const next = new Set(prev);
       if (checked) {
@@ -535,6 +579,7 @@ export class ParticipantsPage implements OnInit {
   toggleSelectAll(event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
     const filteredIds = this.filtered().map((r) => r.id);
+    this.error.set(null);
     this.selectedIds.update((prev) => {
       const next = new Set(prev);
       if (checked) {
@@ -612,6 +657,90 @@ export class ParticipantsPage implements OnInit {
         void this.applyBatchEdit(ids, result);
       }
     });
+  }
+
+  linkSelectedAsRoommates(): void {
+    void this.linkSelectedAsRoommatesAsync();
+  }
+
+  private async linkSelectedAsRoommatesAsync(): Promise<void> {
+    const ids = [...this.selectedIds()];
+    if (ids.length < 2) {
+      this.error.set('Select at least 2 people to link as roommates');
+      return;
+    }
+    if (ids.length > MAX_ROOMMATE_LINK_SELECTION) {
+      this.error.set(
+        `Link as roommates is limited to ${MAX_ROOMMATE_LINK_SELECTION} selected people`,
+      );
+      return;
+    }
+
+    const campId = this.campContext.requireCampId();
+    const byId = new Map(this.registrations().map((r) => [r.id, r]));
+    const scoped = ids.filter((id) => byId.get(id)?.camp_id === campId);
+    if (scoped.length !== ids.length) {
+      this.error.set('All selected participants must belong to this camp');
+      return;
+    }
+
+    // Expanded group = selected people + anyone they already list as a roommate
+    const existingCounts = new Map<string, number>();
+    const group = new Set(scoped);
+    try {
+      for (const id of scoped) {
+        const current = await this.registrationsService.listRoommateIds(id);
+        existingCounts.set(id, current.length);
+        for (const rid of current) {
+          group.add(rid);
+        }
+      }
+    } catch (err) {
+      this.error.set(
+        err instanceof Error ? err.message : 'Failed to load existing roommates',
+      );
+      return;
+    }
+
+    if (group.size > MAX_ROOMMATE_LINK_SELECTION) {
+      const withExisting = scoped
+        .filter((id) => (existingCounts.get(id) ?? 0) > 0)
+        .map((id) => {
+          const n = existingCounts.get(id) ?? 0;
+          const name = byId.get(id)?.display_name ?? id;
+          return `${name} (already has ${n} roommate${n === 1 ? '' : 's'})`;
+        });
+      const details =
+        withExisting.length > 0
+          ? `\n\nParticipants who already have roommates:\n• ${withExisting.join('\n• ')}`
+          : '';
+      this.error.set(
+        `The group is too big (${group.size} people including existing roommates; max is ${MAX_ROOMMATE_LINK_SELECTION}).${details}`,
+      );
+      return;
+    }
+
+    const names = scoped.map((id) => byId.get(id)!.display_name).join(', ');
+    const ok = window.confirm(
+      `Link these ${scoped.length} people as roommates?\n\n${names}\n\nEach will list the others as preferred roommates (replaces their current roommate list with this group). Links go both ways.`,
+    );
+    if (!ok) {
+      return;
+    }
+
+    this.error.set(null);
+    try {
+      for (const id of scoped) {
+        const others = scoped.filter((rid) => rid !== id);
+        await this.registrationsService.setRoommates(id, others, campId);
+      }
+      this.selectedIds.set(new Set());
+      await this.load();
+    } catch (err) {
+      this.error.set(
+        err instanceof Error ? err.message : 'Failed to link roommates',
+      );
+    }
   }
 
   openEdit(reg: Registration): void {
