@@ -199,11 +199,11 @@ import { AutoAssignSummaryDialog } from '../../dialogs/auto-assign-summary.dialo
                     Drivers
                   </h3>
                   <p class="text-xs text-[var(--ctp-text-muted)]">
-                    {{ store.filteredDrivers().length }} cards · max 5 per row
+                    {{ store.filteredDrivers().length }} cards · wider when space allows
                   </p>
                 </div>
 
-                <div class="grid grid-cols-3 gap-4 xl:grid-cols-5">
+                <div class="drivers-grid">
                   @for (driver of store.filteredDrivers(); track driver.id) {
                     <app-driver-column
                       class="min-w-0"
@@ -223,7 +223,7 @@ import { AutoAssignSummaryDialog } from '../../dialogs/auto-assign-summary.dialo
                     />
                   } @empty {
                     <div
-                      class="col-span-3 rounded-[var(--ctp-radius)] border border-dashed border-[var(--ctp-border)] bg-[var(--ctp-surface)] px-6 py-16 text-center xl:col-span-5"
+                      class="drivers-grid__empty rounded-[var(--ctp-radius)] border border-dashed border-[var(--ctp-border)] bg-[var(--ctp-surface)] px-6 py-16 text-center"
                     >
                       <p class="text-sm font-medium">No drivers yet</p>
                       <p class="mt-1 text-xs text-[var(--ctp-text-muted)]">
@@ -297,6 +297,17 @@ import { AutoAssignSummaryDialog } from '../../dialogs/auto-assign-summary.dialo
       margin: 0.4rem 0 0;
       padding-left: 1.1rem;
       font-size: 0.9rem;
+    }
+
+    .drivers-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1rem;
+      align-items: stretch;
+    }
+
+    .drivers-grid__empty {
+      grid-column: 1 / -1;
     }
   `,
 })

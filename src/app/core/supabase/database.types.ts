@@ -107,6 +107,14 @@ export interface LodgingAssignment {
   created_at: string;
 }
 
+export interface RoommatePreference {
+  id: string;
+  camp_id: string;
+  registration_id: string;
+  roommate_registration_id: string;
+  created_at: string;
+}
+
 export interface CampInvitation {
   id: string;
   camp_id: string;
@@ -172,6 +180,11 @@ export type Database = {
         LodgingAssignment,
         Omit<LodgingAssignment, 'id' | 'created_at'> & { id?: string },
         Partial<LodgingAssignment>
+      >;
+      registration_roommate_preferences: TableDef<
+        RoommatePreference,
+        Omit<RoommatePreference, 'id' | 'created_at'> & { id?: string },
+        Partial<RoommatePreference>
       >;
       camp_invitations: TableDef<
         CampInvitation,

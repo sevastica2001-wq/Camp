@@ -14,7 +14,10 @@ import { LocationBadgePipe } from '../../pipes/location-badge.pipe';
     >
       <div class="flex items-start justify-between gap-2">
         <div class="min-w-0 flex-1">
-          <h4 class="truncate text-sm font-semibold text-[var(--ctp-text)]">
+          <h4
+            class="text-sm font-semibold text-[var(--ctp-text)] break-words [overflow-wrap:anywhere]"
+            [matTooltip]="passenger().name"
+          >
             {{ passenger().name }}
           </h4>
           <div class="mt-2 flex flex-wrap gap-1.5">

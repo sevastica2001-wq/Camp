@@ -8,7 +8,6 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import {
   MatAutocompleteModule,
   MatAutocompleteSelectedEvent,
@@ -22,6 +21,7 @@ export interface AddParticipantDialogData {
   people: Registration[];
   mode?: 'add' | 'edit';
   registration?: Registration;
+  roommateIds?: string[];
 }
 
 export interface AddParticipantFormResult {
@@ -35,6 +35,7 @@ export interface AddParticipantFormResult {
   notes?: string;
   gender: PersonGender;
   partner_registration_id?: string | null;
+  roommate_ids: string[];
 }
 
 const NONE_OPTION = { id: '', display_name: 'None' } as Registration;
@@ -49,26 +50,38 @@ const UNASSIGNED_OPTION = { id: '', display_name: 'Unassigned' } as Registration
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule,
     MatAutocompleteModule,
     MatSlideToggleModule,
   ],
   template: `
     <h2 mat-dialog-title>{{ isEdit ? 'Edit participant' : 'Add participant' }}</h2>
-    <mat-dialog-content class="flex flex-col gap-4 pt-2">
+    <mat-dialog-content>
       <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
         <mat-label>Full name</mat-label>
         <input matInput [(ngModel)]="name" required autocomplete="name" />
       </mat-form-field>
 
-      <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
-        <mat-label>Gender</mat-label>
-        <mat-select [(ngModel)]="gender">
-          <mat-option value="female">Female</mat-option>
-          <mat-option value="male">Male</mat-option>
-          <mat-option value="unspecified">Unspecified</mat-option>
-        </mat-select>
-      </mat-form-field>
+      <div class="gender-block">
+        <p class="gender-block__label">Gender</p>
+        <div class="gender-toggle" role="group" aria-label="Gender">
+          <button
+            type="button"
+            class="gender-btn"
+            [class.gender-btn--active]="gender() === 'female'"
+            (click)="setGender('female')"
+          >
+            Female
+          </button>
+          <button
+            type="button"
+            class="gender-btn"
+            [class.gender-btn--active]="gender() === 'male'"
+            (click)="setGender('male')"
+          >
+            Male
+          </button>
+        </div>
+      </div>
 
       @if (partnerOptions.length) {
         <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
@@ -96,6 +109,57 @@ const UNASSIGNED_OPTION = { id: '', display_name: 'Unassigned' } as Registration
           </mat-autocomplete>
           <mat-hint>Type to search, then click a person</mat-hint>
         </mat-form-field>
+      }
+
+      @if (roommateCandidateOptions().length || roommateIds().length) {
+        <div class="roommate-block">
+          <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+            <mat-label>Preferred roommates</mat-label>
+            <input
+              #roommateInput
+              matInput
+              type="text"
+              placeholder="Type to search and add…"
+              [ngModel]="roommateQuery()"
+              (ngModelChange)="onRoommateQueryChange($event)"
+              [matAutocomplete]="roommateAuto"
+            />
+            <mat-autocomplete
+              #roommateAuto="matAutocomplete"
+              (optionSelected)="onRoommateSelected($event, roommateInput)"
+            >
+              @for (person of filteredRoommateCandidates(); track person.id) {
+                <mat-option [value]="person">{{ person.display_name }}</mat-option>
+              }
+              @if (
+                roommateCandidateOptions().length &&
+                !filteredRoommateCandidates().length &&
+                roommateQuery().trim()
+              ) {
+                <mat-option disabled>No matches for “{{ roommateQuery() }}”</mat-option>
+              }
+            </mat-autocomplete>
+            <mat-hint>Add one or more — links both ways; they move together into rooms</mat-hint>
+          </mat-form-field>
+
+          @if (selectedRoommates().length) {
+            <ul class="chip-list">
+              @for (person of selectedRoommates(); track person.id) {
+                <li class="chip">
+                  <span>{{ person.display_name }}</span>
+                  <button
+                    type="button"
+                    class="chip__remove"
+                    [attr.aria-label]="'Remove ' + person.display_name"
+                    (click)="removeRoommate(person.id)"
+                  >
+                    ×
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
       }
 
       <div
@@ -181,6 +245,88 @@ const UNASSIGNED_OPTION = { id: '', display_name: 'Unassigned' } as Registration
       width: 100%;
       margin: 0;
     }
+
+    .gender-block__label {
+      margin: 0 0 0.45rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--ctp-text-muted);
+    }
+
+    .gender-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .gender-btn {
+      min-height: 44px;
+      border-radius: 10px;
+      border: 1px solid var(--ctp-border);
+      background: var(--ctp-bg);
+      color: var(--ctp-text);
+      font-weight: 600;
+      font-size: 0.92rem;
+      cursor: pointer;
+      transition:
+        border-color 0.15s ease,
+        background 0.15s ease,
+        color 0.15s ease;
+    }
+
+    .gender-btn:hover {
+      border-color: var(--ctp-accent);
+    }
+
+    .gender-btn--active {
+      border-color: var(--ctp-accent);
+      background: var(--ctp-accent-soft);
+      color: var(--ctp-accent);
+    }
+
+    .roommate-block {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+
+    .chip-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.28rem 0.35rem 0.28rem 0.65rem;
+      border-radius: 999px;
+      border: 1px solid var(--ctp-border);
+      background: var(--ctp-surface-2);
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .chip__remove {
+      width: 1.35rem;
+      height: 1.35rem;
+      border: none;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--ctp-text-muted);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .chip__remove:hover {
+      color: var(--ctp-danger);
+      background: color-mix(in srgb, var(--ctp-danger) 12%, transparent);
+    }
   `,
 })
 export class AddParticipantDialog {
@@ -203,11 +349,21 @@ export class AddParticipantDialog {
     .slice()
     .sort((a, b) => a.display_name.localeCompare(b.display_name));
 
+  readonly peopleById = new Map((this.data.people ?? []).map((p) => [p.id, p]));
+
   readonly partnerQuery = signal('');
   readonly driverQuery = signal('');
+  readonly roommateQuery = signal('');
   readonly partnerId = signal(this.data.registration?.partner_registration_id ?? '');
   readonly assignedDriverId = signal(
     this.data.registration?.assigned_driver_registration_id ?? '',
+  );
+  readonly roommateIds = signal<string[]>([...(this.data.roommateIds ?? [])]);
+  /** No default — neither Male nor Female selected until the user picks. */
+  readonly gender = signal<PersonGender | null>(
+    this.data.registration?.gender === 'male' || this.data.registration?.gender === 'female'
+      ? this.data.registration.gender
+      : null,
   );
   readonly error = signal<string | null>(null);
 
@@ -229,8 +385,27 @@ export class AddParticipantDialog {
     return this.drivers.filter((d) => d.display_name.toLocaleLowerCase().includes(q));
   });
 
+  readonly roommateCandidateOptions = computed(() => {
+    const selected = new Set(this.roommateIds());
+    return this.partnerOptions.filter((p) => !selected.has(p.id));
+  });
+
+  readonly filteredRoommateCandidates = computed(() => {
+    const q = this.roommateQuery().trim().toLocaleLowerCase();
+    const list = this.roommateCandidateOptions();
+    if (!q) {
+      return list;
+    }
+    return list.filter((p) => p.display_name.toLocaleLowerCase().includes(q));
+  });
+
+  readonly selectedRoommates = computed(() =>
+    this.roommateIds()
+      .map((id) => this.peopleById.get(id))
+      .filter((p): p is Registration => !!p),
+  );
+
   name = this.data.registration?.display_name ?? '';
-  gender: PersonGender = this.data.registration?.gender ?? 'unspecified';
   isDriver = this.data.registration?.transport_role === 'DRIVER';
   availableSeats: number | null = this.data.registration?.available_seats ?? 4;
   departureLocation = this.data.registration?.departure_location || 'Bucuresti';
@@ -248,6 +423,10 @@ export class AddParticipantDialog {
     } else if (this.data.registration?.transport_role === 'PASSENGER') {
       this.driverQuery.set('Unassigned');
     }
+  }
+
+  setGender(value: 'male' | 'female'): void {
+    this.gender.set(this.gender() === value ? null : value);
   }
 
   onPartnerQueryChange(value: string): void {
@@ -277,6 +456,27 @@ export class AddParticipantDialog {
       this.partnerTrigger()?.closePanel();
       input.blur();
     });
+  }
+
+  onRoommateQueryChange(value: string): void {
+    if (typeof value !== 'string') {
+      return;
+    }
+    this.roommateQuery.set(value);
+  }
+
+  onRoommateSelected(event: MatAutocompleteSelectedEvent, input: HTMLInputElement): void {
+    const value = event.option.value as Registration;
+    if (value?.id) {
+      this.roommateIds.update((ids) => (ids.includes(value.id) ? ids : [...ids, value.id]));
+    }
+    this.roommateQuery.set('');
+    input.value = '';
+    queueMicrotask(() => input.focus());
+  }
+
+  removeRoommate(id: string): void {
+    this.roommateIds.update((ids) => ids.filter((x) => x !== id));
   }
 
   onDriverQueryChange(value: string): void {
@@ -327,14 +527,17 @@ export class AddParticipantDialog {
       }
     }
 
+    const gender: PersonGender = this.gender() ?? 'unspecified';
+
     const base = {
       id: this.editId,
       display_name,
       departure_location: this.departureLocation.trim(),
       return_location: this.returnLocation.trim(),
       notes: this.notes.trim() || undefined,
-      gender: this.gender,
+      gender,
       partner_registration_id: partnerId,
+      roommate_ids: this.roommateIds(),
     };
 
     if (this.isDriver) {

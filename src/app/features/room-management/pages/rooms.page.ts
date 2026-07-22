@@ -114,11 +114,16 @@ import { LodgingStore } from '../store/lodging.store';
             <div class="flex flex-1 items-center justify-center">
               <ion-spinner />
             </div>
-          } @else if (store.error()) {
+          } @else if (store.error() && store.buildings().length === 0) {
             <div class="p-4">
               <ion-note color="danger">{{ store.error() }}</ion-note>
             </div>
           } @else {
+            @if (store.error()) {
+              <div class="border-b border-red-200 bg-red-50 px-4 py-2">
+                <ion-note color="danger">{{ store.error() }}</ion-note>
+              </div>
+            }
             <div class="flex min-h-0 flex-1" cdkDropListGroup>
               <aside
                 class="flex h-full w-[280px] shrink-0 flex-col border-r border-[var(--ctp-border)] bg-[var(--ctp-surface)]"

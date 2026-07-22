@@ -12,6 +12,13 @@ export function arePartners(a: LodgingPerson, b: LodgingPerson): boolean {
   return !!a.partnerId && a.partnerId === b.id && b.partnerId === a.id;
 }
 
+export function arePreferredRoommates(a: LodgingPerson, b: LodgingPerson): boolean {
+  return (
+    (a.roommateIds?.includes(b.id) ?? false) ||
+    (b.roommateIds?.includes(a.id) ?? false)
+  );
+}
+
 export function effectiveRoomGender(
   room: LodgingRoomView,
   occupants: LodgingPerson[],
@@ -41,15 +48,21 @@ export function canAssignToRoom(
   person: LodgingPerson,
   room: LodgingRoomView,
   allPeople: LodgingPerson[],
+  extraIncomingIds: string[] = [],
 ): LodgingAssignCheck {
-  const occupants = room.occupantIds
+  const incoming = new Set([person.id, ...extraIncomingIds]);
+  const currentOccupants = room.occupantIds
     .map((id) => allPeople.find((p) => p.id === id))
-    .filter((p): p is LodgingPerson => !!p)
-    .filter((p) => p.id !== person.id);
+    .filter((p): p is LodgingPerson => !!p);
 
-  const alreadyHere = room.occupantIds.includes(person.id);
-  const nextCount = occupants.length + (alreadyHere ? 0 : 1);
-  const overCapacity = nextCount > room.capacity;
+  // People who stay in the room and are not part of this move group
+  const staying = currentOccupants.filter((p) => !incoming.has(p.id));
+  const groupMembers = [...incoming]
+    .map((id) => allPeople.find((p) => p.id === id))
+    .filter((p): p is LodgingPerson => !!p);
+
+  // Final headcount after the whole group is assigned here
+  const nextCount = staying.length + groupMembers.length;
 
   if (room.capacity <= 0) {
     return {
@@ -60,45 +73,89 @@ export function canAssignToRoom(
     };
   }
 
-  if (overCapacity && !alreadyHere) {
+  if (nextCount > room.capacity) {
     return {
       blocked: true,
       overCapacity: true,
       genderConflict: false,
-      reason: 'Room is full',
+      reason: 'Not enough beds for this person and their roommates',
     };
   }
 
-  const policy = effectiveRoomGender(room, occupants);
-  const partnerInRoom = occupants.some((o) => arePartners(person, o));
+  // Only validate people who are not already in this room
+  const entering = groupMembers.filter((p) => !room.occupantIds.includes(p.id));
 
-  if (policy === 'unset' || policy === 'mixed' || policy === 'couple') {
-    return { blocked: false, overCapacity: false, genderConflict: false, reason: null };
-  }
+  for (const candidate of entering) {
+    // Preferred roommates / partners in the move group or already in the room
+    // may share regardless of gender policy (same idea as couples).
+    const linkedToGroup = groupMembers.some(
+      (o) =>
+        o.id !== candidate.id &&
+        (arePartners(candidate, o) || arePreferredRoommates(candidate, o)),
+    );
+    const linkedToRoom = currentOccupants.some(
+      (o) => arePartners(candidate, o) || arePreferredRoommates(candidate, o),
+    );
+    if (linkedToGroup || linkedToRoom) {
+      continue;
+    }
 
-  if (partnerInRoom) {
-    return { blocked: false, overCapacity: false, genderConflict: false, reason: null };
-  }
-
-  if (person.gender === 'unspecified') {
-    return {
-      blocked: true,
-      overCapacity: false,
-      genderConflict: true,
-      reason: 'Set gender before assigning to a gendered room',
-    };
-  }
-
-  if (person.gender !== policy) {
-    return {
-      blocked: true,
-      overCapacity: false,
-      genderConflict: true,
-      reason: `Room is ${policy}-only`,
-    };
+    // Policy from locked room setting + unrelated people already there
+    const policy = effectiveRoomGender(room, staying);
+    if (policy === 'unset' || policy === 'mixed' || policy === 'couple') {
+      continue;
+    }
+    if (candidate.gender === 'unspecified') {
+      return {
+        blocked: true,
+        overCapacity: false,
+        genderConflict: true,
+        reason: `${candidate.name} needs a gender before this room`,
+      };
+    }
+    if (candidate.gender !== policy) {
+      return {
+        blocked: true,
+        overCapacity: false,
+        genderConflict: true,
+        reason: `Room is ${policy}-only (${candidate.name})`,
+      };
+    }
   }
 
   return { blocked: false, overCapacity: false, genderConflict: false, reason: null };
+}
+
+/** People who should move together: preferred roommates in either direction. */
+export function roommateMoveGroup(
+  person: LodgingPerson,
+  allPeople: LodgingPerson[],
+): LodgingPerson[] {
+  const byId = new Map(allPeople.map((p) => [p.id, p]));
+  const group: LodgingPerson[] = [person];
+  const seen = new Set([person.id]);
+
+  const add = (id: string): void => {
+    if (seen.has(id)) {
+      return;
+    }
+    const roommate = byId.get(id);
+    if (roommate) {
+      group.push(roommate);
+      seen.add(id);
+    }
+  };
+
+  for (const id of person.roommateIds ?? []) {
+    add(id);
+  }
+  // Also pull anyone who listed this person as a preferred roommate
+  for (const other of allPeople) {
+    if (other.roommateIds?.includes(person.id)) {
+      add(other.id);
+    }
+  }
+  return group;
 }
 
 export function inferPolicyAfterAssign(

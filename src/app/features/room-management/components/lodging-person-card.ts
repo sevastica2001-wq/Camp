@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, computed, input } from '@angular/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { LodgingPerson } from '../models/lodging.models';
 import { genderLabel } from '../utils/lodging.rules';
@@ -30,6 +30,16 @@ import { genderLabel } from '../utils/lodging.rules';
                 Couple
               </span>
             }
+            @if (person().roommateIds.length > 0) {
+              <span
+                class="rounded-md bg-[var(--ctp-surface-2)] px-2 py-0.5 text-[11px] font-medium text-[var(--ctp-text-muted)]"
+                [matTooltip]="roommateTooltip()"
+              >
+                +{{ person().roommateIds.length }} roommate{{
+                  person().roommateIds.length === 1 ? '' : 's'
+                }}
+              </span>
+            }
           </div>
         </div>
         @if (person().notes) {
@@ -46,4 +56,11 @@ import { genderLabel } from '../utils/lodging.rules';
 export class LodgingPersonCard {
   readonly person = input.required<LodgingPerson>();
   readonly genderLabel = genderLabel;
+
+  readonly roommateTooltip = computed(() => {
+    const n = this.person().roommateIds?.length ?? 0;
+    return n
+      ? `Preferred roommates move with this person (${n})`
+      : '';
+  });
 }

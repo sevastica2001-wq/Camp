@@ -213,6 +213,133 @@ export class RegistrationsService {
     return (data as Registration) ?? null;
   }
 
+  async listRoommateIds(registrationId: string): Promise<string[]> {
+    const { data, error } = await this.supabase.client
+      .from('registration_roommate_preferences')
+      .select('roommate_registration_id')
+      .eq('registration_id', registrationId);
+    if (error) {
+      // Table may not exist yet before migration 0006
+      if (error.message.toLowerCase().includes('does not exist')) {
+        return [];
+      }
+      throw new Error(error.message);
+    }
+    return ((data as Array<{ roommate_registration_id: string }>) ?? []).map(
+      (r) => r.roommate_registration_id,
+    );
+  }
+
+  async listRoommateIdsForCamp(campId: string): Promise<Map<string, string[]>> {
+    const map = new Map<string, string[]>();
+    const { data, error } = await this.supabase.client
+      .from('registration_roommate_preferences')
+      .select('registration_id, roommate_registration_id')
+      .eq('camp_id', campId);
+    if (error) {
+      if (error.message.toLowerCase().includes('does not exist')) {
+        return map;
+      }
+      throw new Error(error.message);
+    }
+    for (const row of (data as Array<{
+      registration_id: string;
+      roommate_registration_id: string;
+    }>) ?? []) {
+      const list = map.get(row.registration_id) ?? [];
+      list.push(row.roommate_registration_id);
+      map.set(row.registration_id, list);
+    }
+    return map;
+  }
+
+  async setRoommates(
+    registrationId: string,
+    roommateIds: string[],
+    campId?: string,
+  ): Promise<void> {
+    const person = await this.getById(registrationId);
+    if (!person) {
+      throw new Error('Participant not found');
+    }
+    // Always derive camp from the registration — never trust a caller override alone
+    const id = person.camp_id;
+    if (campId && campId !== id) {
+      throw new Error('Roommate preferences must stay within the participant camp');
+    }
+    const unique = [...new Set(roommateIds.filter((rid) => rid && rid !== registrationId))];
+
+    for (const roommateId of unique) {
+      const roommate = await this.getById(roommateId);
+      if (!roommate || roommate.camp_id !== id) {
+        throw new Error('Roommate must belong to the same camp');
+      }
+    }
+
+    const previous = await this.listRoommateIds(registrationId);
+
+    // Replace this person's preferred list
+    const { error: delErr } = await this.supabase.client
+      .from('registration_roommate_preferences')
+      .delete()
+      .eq('registration_id', registrationId);
+    if (delErr) {
+      throw new Error(delErr.message);
+    }
+    if (unique.length) {
+      const { error } = await this.supabase.client
+        .from('registration_roommate_preferences')
+        .insert(
+          unique.map((roommate_registration_id) => ({
+            camp_id: id,
+            registration_id: registrationId,
+            roommate_registration_id,
+          })),
+        );
+      if (error) {
+        throw new Error(error.message);
+      }
+    }
+
+    // Keep links mutual: add reverse edges for new roommates, remove reverse for dropped ones
+    const prevSet = new Set(previous);
+    const nextSet = new Set(unique);
+    const added = unique.filter((rid) => !prevSet.has(rid));
+    const removed = previous.filter((rid) => !nextSet.has(rid));
+
+    for (const roommateId of added) {
+      const { data: existing } = await this.supabase.client
+        .from('registration_roommate_preferences')
+        .select('id')
+        .eq('registration_id', roommateId)
+        .eq('roommate_registration_id', registrationId)
+        .maybeSingle();
+      if (!existing) {
+        const { error } = await this.supabase.client
+          .from('registration_roommate_preferences')
+          .insert({
+            camp_id: id,
+            registration_id: roommateId,
+            roommate_registration_id: registrationId,
+          });
+        if (error) {
+          throw new Error(error.message);
+        }
+      }
+    }
+
+    for (const roommateId of removed) {
+      const { error } = await this.supabase.client
+        .from('registration_roommate_preferences')
+        .delete()
+        .eq('registration_id', roommateId)
+        .eq('roommate_registration_id', registrationId);
+      if (error) {
+        throw new Error(error.message);
+      }
+    }
+  }
+
   async update(registrationId: string, patch: Partial<Registration>): Promise<Registration> {
     const { data, error } = await this.supabase.client
       .from('registrations')

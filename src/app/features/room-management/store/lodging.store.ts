@@ -12,6 +12,7 @@ import {
   canAssignToRoom,
   effectiveRoomGender,
   inferPolicyAfterAssign,
+  roommateMoveGroup,
 } from '../utils/lodging.rules';
 
 @Injectable({ providedIn: 'root' })
@@ -125,7 +126,9 @@ export class LodgingStore {
     if (building && building.status !== 'active') {
       return 'blocked';
     }
-    const check = canAssignToRoom(person, room, this.people());
+    const group = roommateMoveGroup(person, this.people());
+    const extraIds = group.filter((p) => p.id !== personId).map((p) => p.id);
+    const check = canAssignToRoom(person, room, this.people(), extraIds);
     if (check.blocked) {
       return check.overCapacity ? 'danger' : 'blocked';
     }
@@ -133,38 +136,75 @@ export class LodgingStore {
   }
 
   canEnter(personId: string, roomId: string | null): boolean {
-    return this.evaluateDrop(personId, roomId) !== 'blocked' &&
-      this.evaluateDrop(personId, roomId) !== 'danger';
+    // Allow enter on over-capacity ('danger') so the drop zone expands and
+    // shows a red highlight; movePerson still rejects and surfaces the reason.
+    return this.evaluateDrop(personId, roomId) !== 'blocked';
   }
 
   async movePerson(personId: string, targetRoomId: string | null): Promise<void> {
-    const highlight = this.evaluateDrop(personId, targetRoomId);
-    if (highlight === 'blocked' || highlight === 'danger') {
-      return;
-    }
     const campId = this.campContext.requireCampId();
     const person = this.getPerson(personId);
     if (!person) {
       return;
     }
 
-    // Optimistic local update
-    const prevRoomId = person.roomId;
+    // Into a room: bring preferred roommates (both directions). Unassign: only this person.
+    const movers =
+      targetRoomId != null
+        ? roommateMoveGroup(person, this.people())
+        : [person];
+    const moverIds = movers.map((p) => p.id);
+
+    if (targetRoomId) {
+      const room = this.getRoom(targetRoomId);
+      if (!room) {
+        return;
+      }
+      const building = this.buildings().find((b) => b.id === room.buildingId);
+      if (building && building.status !== 'active') {
+        this.error.set('This cabin is not available');
+        return;
+      }
+      const extraIds = moverIds.filter((id) => id !== personId);
+      const check = canAssignToRoom(person, room, this.people(), extraIds);
+      if (check.blocked) {
+        this.error.set(check.reason ?? 'Cannot assign this group to the room');
+        return;
+      }
+    }
+
+    const previousRooms = new Map(movers.map((p) => [p.id, p.roomId] as const));
+    const roomsToMaybeClear = new Set(
+      [...previousRooms.values()].filter((id): id is string => !!id && id !== targetRoomId),
+    );
+
     this.people.update((list) =>
-      list.map((p) => (p.id === personId ? { ...p, roomId: targetRoomId } : p)),
+      list.map((p) => (moverIds.includes(p.id) ? { ...p, roomId: targetRoomId } : p)),
     );
     this.rooms.update((list) =>
       list.map((room) => {
-        let occupantIds = room.occupantIds.filter((id) => id !== personId);
+        let occupantIds = room.occupantIds.filter((id) => !moverIds.includes(id));
         if (room.id === targetRoomId) {
-          occupantIds = [...occupantIds, personId];
+          occupantIds = [...occupantIds, ...moverIds.filter((id) => !occupantIds.includes(id))];
         }
         return { ...room, occupantIds };
       }),
     );
 
     try {
-      await this.lodging.assignPerson(campId, personId, targetRoomId);
+      for (const id of moverIds) {
+        await this.lodging.assignPerson(campId, id, targetRoomId);
+      }
+      // Empty rooms go back to Open so people can be re-assigned freely
+      for (const roomId of roomsToMaybeClear) {
+        const room = this.getRoom(roomId);
+        if (room && room.occupantIds.length === 0 && room.genderPolicy !== 'unset') {
+          await this.lodging.updateRoomGenderPolicy(roomId, 'unset');
+          this.rooms.update((list) =>
+            list.map((r) => (r.id === roomId ? { ...r, genderPolicy: 'unset' } : r)),
+          );
+        }
+      }
       if (targetRoomId) {
         const room = this.getRoom(targetRoomId);
         const updatedPerson = this.getPerson(personId);
@@ -180,16 +220,20 @@ export class LodgingStore {
           }
         }
       }
+      this.error.set(null);
     } catch (err) {
-      // rollback
       this.people.update((list) =>
-        list.map((p) => (p.id === personId ? { ...p, roomId: prevRoomId } : p)),
+        list.map((p) =>
+          previousRooms.has(p.id) ? { ...p, roomId: previousRooms.get(p.id)! } : p,
+        ),
       );
       this.rooms.update((list) =>
         list.map((room) => {
-          let occupantIds = room.occupantIds.filter((id) => id !== personId);
-          if (room.id === prevRoomId) {
-            occupantIds = [...occupantIds, personId];
+          let occupantIds = room.occupantIds.filter((id) => !moverIds.includes(id));
+          for (const [id, prev] of previousRooms) {
+            if (prev === room.id) {
+              occupantIds = [...occupantIds, id];
+            }
           }
           return { ...room, occupantIds };
         }),

@@ -15,20 +15,29 @@ import {
   IonSelect,
   IonSelectOption,
   IonSpinner,
-  IonTitle,
   IonToolbar,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { addOutline, createOutline, refreshOutline, searchOutline } from 'ionicons/icons';
+import {
+  addOutline,
+  createOutline,
+  optionsOutline,
+  refreshOutline,
+  searchOutline,
+} from 'ionicons/icons';
 import { CampContextService } from '../../core/camp-context/camp-context.service';
 import { Registration } from '../../core/supabase/database.types';
 import {
   AddParticipantDialog,
   AddParticipantFormResult,
 } from './add-participant.dialog';
+import {
+  BatchEditParticipantsDialog,
+  BatchEditParticipantsResult,
+} from './batch-edit-participants.dialog';
 import { RegistrationsService } from './registrations.service';
 
-addIcons({ addOutline, createOutline, refreshOutline, searchOutline });
+addIcons({ addOutline, createOutline, optionsOutline, refreshOutline, searchOutline });
 
 @Component({
   selector: 'app-participants-page',
@@ -38,7 +47,6 @@ addIcons({ addOutline, createOutline, refreshOutline, searchOutline });
     IonHeader,
     IonIcon,
     IonToolbar,
-    IonTitle,
     IonButtons,
     IonMenuButton,
     IonContent,
@@ -57,7 +65,6 @@ addIcons({ addOutline, createOutline, refreshOutline, searchOutline });
         <ion-buttons slot="start">
           <ion-menu-button />
         </ion-buttons>
-        <ion-title>Participants</ion-title>
         <ion-buttons slot="end">
           <ion-button (click)="reload()">
             <ion-icon slot="icon-only" name="refresh-outline" />
@@ -79,12 +86,26 @@ addIcons({ addOutline, createOutline, refreshOutline, searchOutline });
               <h1 class="app-brand">Participants</h1>
               <p class="app-brand-sub">
                 {{ filtered().length }} shown · {{ registrations().length }} total
+                @if (selectedCount() > 0) {
+                  <span> · {{ selectedCount() }} selected</span>
+                }
               </p>
             </div>
-            <ion-button class="add-btn" (click)="openAdd()">
-              <ion-icon slot="start" name="add-outline" />
-              Add participant
-            </ion-button>
+            <div class="head-actions">
+              <ion-button
+                class="batch-btn"
+                fill="outline"
+                [disabled]="selectedCount() === 0"
+                (click)="openBatchEdit()"
+              >
+                <ion-icon slot="start" name="options-outline" />
+                Batch functions
+              </ion-button>
+              <ion-button class="add-btn" (click)="openAdd()">
+                <ion-icon slot="start" name="add-outline" />
+                Add participant
+              </ion-button>
+            </div>
           </header>
 
           <div class="toolbar">
@@ -125,6 +146,17 @@ addIcons({ addOutline, createOutline, refreshOutline, searchOutline });
               <table class="participants-table">
                 <thead>
                   <tr>
+                    <th class="col-check">
+                      <input
+                        type="checkbox"
+                        class="row-check"
+                        [checked]="allFilteredSelected()"
+                        [indeterminate]="someFilteredSelected()"
+                        [disabled]="filtered().length === 0"
+                        aria-label="Select all shown participants"
+                        (change)="toggleSelectAll($event)"
+                      />
+                    </th>
                     <th>Name</th>
                     <th class="col-center">Gender</th>
                     <th class="col-center">Driver</th>
@@ -136,7 +168,16 @@ addIcons({ addOutline, createOutline, refreshOutline, searchOutline });
                 </thead>
                 <tbody>
                   @for (reg of filtered(); track reg.id) {
-                    <tr>
+                    <tr [class.row-selected]="isSelected(reg.id)">
+                      <td class="col-check">
+                        <input
+                          type="checkbox"
+                          class="row-check"
+                          [checked]="isSelected(reg.id)"
+                          [attr.aria-label]="'Select ' + reg.display_name"
+                          (change)="toggleSelected(reg.id, $event)"
+                        />
+                      </td>
                       <td class="name-cell">
                         {{ reg.display_name }}
                         @if (reg.partner_registration_id) {
@@ -173,7 +214,7 @@ addIcons({ addOutline, createOutline, refreshOutline, searchOutline });
                     </tr>
                   } @empty {
                     <tr>
-                      <td colspan="7" class="empty">No participants match your filters</td>
+                      <td colspan="8" class="empty">No participants match your filters</td>
                     </tr>
                   }
                 </tbody>
@@ -215,11 +256,23 @@ addIcons({ addOutline, createOutline, refreshOutline, searchOutline });
       margin-bottom: 1.25rem;
     }
 
-    .add-btn {
+    .head-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.55rem;
+    }
+
+    .add-btn,
+    .batch-btn {
       --border-radius: 12px;
       min-height: 44px;
       font-weight: 600;
       margin: 0;
+    }
+
+    .batch-btn {
+      --border-width: 1px;
     }
 
     .toolbar {
@@ -314,6 +367,25 @@ addIcons({ addOutline, createOutline, refreshOutline, searchOutline });
       text-align: center;
     }
 
+    .col-check {
+      width: 2.75rem;
+      text-align: center;
+      padding-left: 0.75rem !important;
+      padding-right: 0.35rem !important;
+    }
+
+    .row-check {
+      width: 1.05rem;
+      height: 1.05rem;
+      accent-color: var(--ctp-accent);
+      cursor: pointer;
+      vertical-align: middle;
+    }
+
+    .row-selected td {
+      background: color-mix(in srgb, var(--ctp-accent-soft) 55%, transparent);
+    }
+
     .notes-cell {
       max-width: 280px;
       color: var(--ctp-text-muted);
@@ -392,6 +464,7 @@ export class ParticipantsPage implements OnInit {
   readonly error = signal<string | null>(null);
   readonly registrations = signal<Registration[]>([]);
   readonly filterTick = signal(0);
+  readonly selectedIds = signal<Set<string>>(new Set());
 
   search = '';
   roleFilter: 'ALL' | 'DRIVER' | 'PASSENGER' = 'ALL';
@@ -410,6 +483,24 @@ export class ParticipantsPage implements OnInit {
     });
   });
 
+  readonly selectedCount = computed(() => this.selectedIds().size);
+
+  readonly allFilteredSelected = computed(() => {
+    const rows = this.filtered();
+    if (!rows.length) {
+      return false;
+    }
+    const selected = this.selectedIds();
+    return rows.every((r) => selected.has(r.id));
+  });
+
+  readonly someFilteredSelected = computed(() => {
+    const rows = this.filtered();
+    const selected = this.selectedIds();
+    const n = rows.filter((r) => selected.has(r.id)).length;
+    return n > 0 && n < rows.length;
+  });
+
   private driverById = new Map<string, Registration>();
 
   ngOnInit(): void {
@@ -424,6 +515,41 @@ export class ParticipantsPage implements OnInit {
     this.filterTick.update((n) => n + 1);
   }
 
+  isSelected(id: string): boolean {
+    return this.selectedIds().has(id);
+  }
+
+  toggleSelected(id: string, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.selectedIds.update((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  }
+
+  toggleSelectAll(event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    const filteredIds = this.filtered().map((r) => r.id);
+    this.selectedIds.update((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        for (const id of filteredIds) {
+          next.add(id);
+        }
+      } else {
+        for (const id of filteredIds) {
+          next.delete(id);
+        }
+      }
+      return next;
+    });
+  }
+
   async load(): Promise<void> {
     this.loading.set(true);
     this.error.set(null);
@@ -434,6 +560,8 @@ export class ParticipantsPage implements OnInit {
         list.filter((r) => r.transport_role === 'DRIVER').map((d) => [d.id, d]),
       );
       this.registrations.set(list);
+      const valid = new Set(list.map((r) => r.id));
+      this.selectedIds.update((prev) => new Set([...prev].filter((id) => valid.has(id))));
       this.filterTick.update((n) => n + 1);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load participants');
@@ -455,7 +583,7 @@ export class ParticipantsPage implements OnInit {
     const drivers = this.registrations().filter((r) => r.transport_role === 'DRIVER');
     const ref = this.dialog.open(AddParticipantDialog, {
       width: '480px',
-      data: { mode: 'add', drivers, people: this.registrations() },
+      data: { mode: 'add', drivers, people: this.registrations(), roommateIds: [] },
     });
     ref.afterClosed().subscribe((result: AddParticipantFormResult | undefined) => {
       if (result) {
@@ -464,8 +592,40 @@ export class ParticipantsPage implements OnInit {
     });
   }
 
-  openEdit(reg: Registration): void {
+  openBatchEdit(): void {
+    const ids = [...this.selectedIds()];
+    if (!ids.length) {
+      return;
+    }
     const drivers = this.registrations().filter((r) => r.transport_role === 'DRIVER');
+    const ref = this.dialog.open(BatchEditParticipantsDialog, {
+      width: '520px',
+      data: {
+        count: ids.length,
+        selectedIds: ids,
+        drivers,
+        people: this.registrations(),
+      },
+    });
+    ref.afterClosed().subscribe((result: BatchEditParticipantsResult | undefined) => {
+      if (result) {
+        void this.applyBatchEdit(ids, result);
+      }
+    });
+  }
+
+  openEdit(reg: Registration): void {
+    void this.openEditAsync(reg);
+  }
+
+  private async openEditAsync(reg: Registration): Promise<void> {
+    const drivers = this.registrations().filter((r) => r.transport_role === 'DRIVER');
+    let roommateIds: string[] = [];
+    try {
+      roommateIds = await this.registrationsService.listRoommateIds(reg.id);
+    } catch {
+      roommateIds = [];
+    }
     const ref = this.dialog.open(AddParticipantDialog, {
       width: '480px',
       data: {
@@ -473,6 +633,7 @@ export class ParticipantsPage implements OnInit {
         registration: reg,
         drivers,
         people: this.registrations(),
+        roommateIds,
       },
     });
     ref.afterClosed().subscribe((result: AddParticipantFormResult | undefined) => {
@@ -509,6 +670,7 @@ export class ParticipantsPage implements OnInit {
           form.partner_registration_id,
         );
       }
+      await this.registrationsService.setRoommates(created.id, form.roommate_ids ?? []);
       await this.load();
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to add participant');
@@ -538,9 +700,97 @@ export class ParticipantsPage implements OnInit {
         form.id,
         form.partner_registration_id ?? null,
       );
+      await this.registrationsService.setRoommates(form.id, form.roommate_ids ?? []);
       await this.load();
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to update participant');
+    }
+  }
+
+  private async applyBatchEdit(
+    ids: string[],
+    patch: BatchEditParticipantsResult,
+  ): Promise<void> {
+    this.error.set(null);
+    try {
+      const campId = this.campContext.requireCampId();
+      const byId = new Map(this.registrations().map((r) => [r.id, r]));
+      // Only apply to participants that belong to the active camp
+      const scopedIds = ids.filter((id) => byId.get(id)?.camp_id === campId);
+      if (!scopedIds.length) {
+        throw new Error('No selected participants belong to this camp');
+      }
+
+      if (
+        patch.transport_role === 'PASSENGER' &&
+        patch.assigned_driver_registration_id
+      ) {
+        const driver = byId.get(patch.assigned_driver_registration_id);
+        if (
+          !driver ||
+          driver.camp_id !== campId ||
+          driver.transport_role !== 'DRIVER'
+        ) {
+          throw new Error('Assigned driver must belong to this camp');
+        }
+      }
+
+      if (patch.partner_registration_id) {
+        const partner = byId.get(patch.partner_registration_id);
+        if (!partner || partner.camp_id !== campId) {
+          throw new Error('Partner must belong to this camp');
+        }
+      }
+
+      if (patch.roommate_ids?.length) {
+        for (const rid of patch.roommate_ids) {
+          const roommate = byId.get(rid);
+          if (!roommate || roommate.camp_id !== campId) {
+            throw new Error('Roommates must belong to this camp');
+          }
+        }
+      }
+
+      for (const id of scopedIds) {
+        const rowPatch: Partial<Registration> = {};
+        if (patch.gender !== undefined) {
+          rowPatch.gender = patch.gender;
+        }
+        if (patch.departure_location !== undefined) {
+          rowPatch.departure_location = patch.departure_location;
+        }
+        if (patch.return_location !== undefined) {
+          rowPatch.return_location = patch.return_location;
+        }
+        if (patch.notes !== undefined) {
+          rowPatch.notes = patch.notes;
+        }
+        if (patch.transport_role !== undefined) {
+          rowPatch.transport_role = patch.transport_role;
+          rowPatch.available_seats = patch.available_seats ?? 0;
+          rowPatch.assigned_driver_registration_id =
+            patch.transport_role === 'DRIVER'
+              ? null
+              : (patch.assigned_driver_registration_id ?? null);
+        }
+        if (Object.keys(rowPatch).length) {
+          await this.registrationsService.update(id, rowPatch);
+        }
+        if (patch.partner_registration_id !== undefined) {
+          await this.registrationsService.linkPartners(id, patch.partner_registration_id);
+        }
+        if (patch.roommate_ids !== undefined) {
+          await this.registrationsService.setRoommates(
+            id,
+            patch.roommate_ids.filter((rid) => rid !== id),
+            campId,
+          );
+        }
+      }
+      this.selectedIds.set(new Set());
+      await this.load();
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Failed to update participants');
     }
   }
 

@@ -39,9 +39,14 @@ import { isOverCapacity } from '../../utils/seat.utils';
       <header class="border-b border-[var(--ctp-border)] p-4">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
-            <h3 class="truncate text-base font-semibold tracking-tight">{{ driver().name }}</h3>
+            <h3
+              class="text-base font-semibold tracking-tight break-words [overflow-wrap:anywhere]"
+              [matTooltip]="driver().name"
+            >
+              {{ driver().name }}
+            </h3>
             @if (driver().carModel || driver().carColor) {
-              <p class="mt-0.5 truncate text-xs text-[var(--ctp-text-muted)]">
+              <p class="mt-0.5 text-xs text-[var(--ctp-text-muted)] break-words [overflow-wrap:anywhere]">
                 {{ driver().carModel }}
                 @if (driver().carColor) {
                   <span>· {{ driver().carColor }}</span>

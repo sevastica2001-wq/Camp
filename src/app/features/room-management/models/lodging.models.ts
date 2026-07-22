@@ -10,6 +10,7 @@ export interface LodgingPerson {
   name: string;
   gender: PersonGender;
   partnerId: string | null;
+  roommateIds: string[];
   roomId: string | null;
   notes?: string;
 }

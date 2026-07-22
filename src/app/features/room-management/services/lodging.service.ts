@@ -54,11 +54,12 @@ export class LodgingService {
     const id = campId ?? this.campContext.requireCampId();
     await this.ensureLayout(id);
 
-    const [regs, buildings, rooms, assignments] = await Promise.all([
+    const [regs, buildings, rooms, assignments, roommateMap] = await Promise.all([
       this.fetchRegistrations(id),
       this.fetchBuildings(id),
       this.fetchRooms(id),
       this.fetchAssignments(id),
+      this.fetchRoommatePrefs(id),
     ]);
 
     const roomOccupants = new Map<string, string[]>();
@@ -75,6 +76,7 @@ export class LodgingService {
       name: r.display_name,
       gender: r.gender ?? 'unspecified',
       partnerId: r.partner_registration_id,
+      roommateIds: roommateMap.get(r.id) ?? [],
       roomId: personRoom.get(r.id) ?? null,
       notes: r.notes ?? undefined,
     }));
@@ -269,5 +271,30 @@ export class LodgingService {
       throw new Error(error.message);
     }
     return (data as LodgingAssignment[]) ?? [];
+  }
+
+  private async fetchRoommatePrefs(campId: string): Promise<Map<string, string[]>> {
+    const map = new Map<string, string[]>();
+    const { data, error } = await this.supabase.client
+      .from('registration_roommate_preferences')
+      .select('registration_id, roommate_registration_id')
+      .eq('camp_id', campId);
+    if (error) {
+      // Missing table before migration — empty prefs. Other errors should surface.
+      const msg = error.message.toLowerCase();
+      if (msg.includes('does not exist') || msg.includes('schema cache')) {
+        return map;
+      }
+      throw new Error(error.message);
+    }
+    for (const row of (data as Array<{
+      registration_id: string;
+      roommate_registration_id: string;
+    }>) ?? []) {
+      const list = map.get(row.registration_id) ?? [];
+      list.push(row.roommate_registration_id);
+      map.set(row.registration_id, list);
+    }
+    return map;
   }
 }
