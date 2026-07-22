@@ -1,6 +1,7 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { LodgingPerson } from '../models/lodging.models';
+import { LodgingStore } from '../store/lodging.store';
 import { genderLabel } from '../utils/lodging.rules';
 
 @Component({
@@ -54,13 +55,21 @@ import { genderLabel } from '../utils/lodging.rules';
   `,
 })
 export class LodgingPersonCard {
+  private readonly store = inject(LodgingStore);
+
   readonly person = input.required<LodgingPerson>();
   readonly genderLabel = genderLabel;
 
   readonly roommateTooltip = computed(() => {
-    const n = this.person().roommateIds?.length ?? 0;
-    return n
-      ? `Preferred roommates move with this person (${n})`
-      : '';
+    const ids = this.person().roommateIds ?? [];
+    if (ids.length === 0) {
+      return '';
+    }
+    const byId = this.store.peopleById();
+    const names = ids
+      .map((id) => byId.get(id)?.name)
+      .filter((name): name is string => !!name);
+    const list = names.length > 0 ? names.join(', ') : `${ids.length} preferred`;
+    return `Preferred roommates move with this person: ${list}`;
   });
 }
