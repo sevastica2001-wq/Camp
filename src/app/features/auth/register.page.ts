@@ -83,6 +83,9 @@ import { AuthService } from '../../core/auth/auth.service';
             @if (error()) {
               <ion-note color="danger">{{ error() }}</ion-note>
             }
+            @if (info()) {
+              <ion-note color="success">{{ info() }}</ion-note>
+            }
 
             <ion-button expand="block" type="submit" class="auth-submit" [disabled]="loading()">
               @if (loading()) {
@@ -95,6 +98,7 @@ import { AuthService } from '../../core/auth/auth.service';
 
           <div class="auth-shell__links">
             <a routerLink="/login">Already have an account? Sign in</a>
+            <a routerLink="/forgot-password">Forgot password?</a>
           </div>
         </div>
       </div>
@@ -150,9 +154,11 @@ export class RegisterPage {
   password = '';
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+  readonly info = signal<string | null>(null);
 
   async submit(): Promise<void> {
     this.error.set(null);
+    this.info.set(null);
     this.loading.set(true);
     try {
       const result = await this.auth.register({
@@ -163,6 +169,12 @@ export class RegisterPage {
       });
       if (result.error) {
         this.error.set(result.error);
+        return;
+      }
+      if (result.needsEmailConfirmation) {
+        this.info.set(
+          'Account created. Check your email to confirm, then sign in. (Also check spam.)',
+        );
         return;
       }
       await this.router.navigateByUrl(

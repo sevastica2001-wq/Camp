@@ -96,9 +96,11 @@ export class AuthService {
     password: string;
     firstName: string;
     lastName: string;
-  }): Promise<{ error: string | null }> {
+  }): Promise<{ error: string | null; needsEmailConfirmation?: boolean }> {
+    await this.clearLocalAuth();
+    const email = input.email.trim().toLowerCase();
     const { data, error } = await this.supabase.client.auth.signUp({
-      email: input.email,
+      email,
       password: input.password,
       options: {
         data: {
@@ -110,22 +112,63 @@ export class AuthService {
     if (error) {
       return { error: error.message };
     }
-    if (data.user) {
-      await this.ensureProfile(data.user, input.firstName, input.lastName);
+
+    // Email-enumeration protection: existing address can return a user with no identities
+    // and no session — password was not set; treat as already registered.
+    const identities = data.user?.identities ?? [];
+    if (data.user && identities.length === 0) {
+      return {
+        error:
+          'An account with this email already exists. Sign in, or use Forgot password if you never set one.',
+      };
     }
-    return { error: null };
+
+    if (data.user && data.session) {
+      await this.ensureProfile(data.user, input.firstName, input.lastName);
+      return { error: null };
+    }
+
+    // Confirm-email is enabled: account created but cannot sign in until confirmed.
+    if (data.user && !data.session) {
+      return {
+        error: null,
+        needsEmailConfirmation: true,
+      };
+    }
+
+    return { error: 'Registration did not complete. Try again or use a different email.' };
   }
 
   async login(email: string, password: string): Promise<{ error: string | null }> {
     // Clear anonymous/stale sessions first so a dead refresh token cannot block password login.
     await this.clearLocalAuth();
-    const { error } = await this.supabase.client.auth.signInWithPassword({ email, password });
+    const normalizedEmail = email.trim().toLowerCase();
+    const { error } = await this.supabase.client.auth.signInWithPassword({
+      email: normalizedEmail,
+      password,
+    });
     if (error && this.isInvalidRefreshError(error)) {
       await this.clearLocalAuth();
-      const retry = await this.supabase.client.auth.signInWithPassword({ email, password });
-      return { error: retry.error?.message ?? null };
+      const retry = await this.supabase.client.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
+      return { error: this.formatLoginError(retry.error) };
     }
-    return { error: error?.message ?? null };
+    return { error: this.formatLoginError(error) };
+  }
+
+  private formatLoginError(error: { message?: string; code?: string } | null): string | null {
+    if (!error) {
+      return null;
+    }
+    if (error.code === 'email_not_confirmed' || /email not confirmed/i.test(error.message ?? '')) {
+      return 'Confirm your email before signing in. Check your inbox (and spam), or ask an organizer to confirm your account.';
+    }
+    if (/invalid login credentials/i.test(error.message ?? '')) {
+      return 'Invalid email or password. If you just registered, confirm your email first, or use Forgot password.';
+    }
+    return error.message ?? 'Sign in failed';
   }
 
   /** Silent guest session (requires Anonymous provider enabled in Supabase Auth). */
