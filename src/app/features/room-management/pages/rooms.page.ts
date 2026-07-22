@@ -43,7 +43,11 @@ import { LodgingStore } from '../store/lodging.store';
         <div
           class="border-b border-[var(--ctp-warning)] bg-[var(--ctp-warning-soft)] px-4 py-2 text-sm text-[var(--ctp-warning)]"
         >
-          Camp is {{ campStatus() }} — room assignments are view-only for your role/status.
+          @if (permissions.isViewer()) {
+            View only — guest access. You can browse rooms but not change assignments.
+          } @else {
+            Camp is {{ campStatus() }} — room assignments are view-only for your role/status.
+          }
         </div>
       }
 
@@ -136,7 +140,10 @@ import { LodgingStore } from '../store/lodging.store';
                 <header class="border-b border-[var(--ctp-border)] px-4 py-3">
                   <h2 class="text-sm font-semibold">Unassigned</h2>
                   <p class="text-xs text-[var(--ctp-text-muted)]">
-                    {{ store.filteredUnassigned().length }} people · drag into a room
+                    {{ store.filteredUnassigned().length }} people
+                    @if (permissions.canManageTransport()) {
+                      · drag into a room
+                    }
                   </p>
                 </header>
                 <div class="space-y-2 border-b border-[var(--ctp-border)] px-3 py-2">
@@ -173,6 +180,7 @@ import { LodgingStore } from '../store/lodging.store';
                   @for (person of store.filteredUnassigned(); track person.id) {
                     <div
                       cdkDrag
+                      [cdkDragDisabled]="!permissions.canManageTransport()"
                       [cdkDragData]="person"
                       (cdkDragStarted)="onDragStarted(person.id)"
                       (cdkDragEnded)="onDragEnded()"
@@ -227,6 +235,7 @@ import { LodgingStore } from '../store/lodging.store';
                                 [policyLabel]="store.roomPolicyLabel(room)"
                                 [canEnter]="canEnterFn"
                                 [activePersonId]="activePersonId()"
+                                [editable]="permissions.canManageTransport()"
                                 (dropped)="onDrop($event, room.id)"
                                 (entered)="onEntered($event)"
                                 (exited)="clearHighlight()"
@@ -304,7 +313,7 @@ export class RoomsPage implements OnInit {
   );
 
   readonly canEnterFn = (personId: string, roomId: string) =>
-    this.store.canEnter(personId, roomId);
+    this.permissions.canManageTransport() && this.store.canEnter(personId, roomId);
 
   readonly sites = computed(() => {
     const names: string[] = [];

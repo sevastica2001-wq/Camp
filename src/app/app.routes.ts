@@ -1,6 +1,9 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/auth/auth.guard';
-import { campMemberGuard } from './core/permissions/role.guard';
+import {
+  campMemberGuard,
+  rejectViewerGuard,
+} from './core/permissions/role.guard';
 
 export const routes: Routes = [
   {
@@ -26,6 +29,11 @@ export const routes: Routes = [
       import('./features/auth/join-camp.page').then((m) => m.JoinCampPage),
   },
   {
+    path: 'view/:slug/:code',
+    loadComponent: () =>
+      import('./features/auth/view-camp.page').then((m) => m.ViewCampPage),
+  },
+  {
     path: 'dashboard',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -40,6 +48,7 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       {
         path: 'dashboard',
+        canActivate: [rejectViewerGuard],
         loadComponent: () =>
           import('./features/dashboard/camp-dashboard.page').then(
             (m) => m.CampDashboardPage,
@@ -47,6 +56,7 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
+        canActivate: [rejectViewerGuard],
         loadComponent: () =>
           import('./features/camps/camp-settings.page').then((m) => m.CampSettingsPage),
       },
@@ -59,6 +69,7 @@ export const routes: Routes = [
       },
       {
         path: 'overview',
+        canActivate: [rejectViewerGuard],
         loadComponent: () =>
           import('./features/transport-planner/pages/overview/overview.page').then(
             (m) => m.OverviewPage,
@@ -66,6 +77,7 @@ export const routes: Routes = [
       },
       {
         path: 'participants',
+        canActivate: [rejectViewerGuard],
         loadComponent: () =>
           import('./features/participants/participants.page').then(
             (m) => m.ParticipantsPage,
@@ -73,6 +85,7 @@ export const routes: Routes = [
       },
       {
         path: 'registration',
+        canActivate: [rejectViewerGuard],
         loadComponent: () =>
           import('./features/participants/registration-form.page').then(
             (m) => m.RegistrationFormPage,
@@ -80,6 +93,7 @@ export const routes: Routes = [
       },
       {
         path: 'driver',
+        canActivate: [rejectViewerGuard],
         loadComponent: () =>
           import('./features/dashboard/driver-portal.page').then(
             (m) => m.DriverPortalPage,
@@ -87,6 +101,7 @@ export const routes: Routes = [
       },
       {
         path: 'me',
+        canActivate: [rejectViewerGuard],
         loadComponent: () =>
           import('./features/dashboard/participant-portal.page').then(
             (m) => m.ParticipantPortalPage,
@@ -100,6 +115,7 @@ export const routes: Routes = [
       { path: 'modules/rooms', redirectTo: 'rooms', pathMatch: 'full' },
       {
         path: 'modules/:module',
+        canActivate: [rejectViewerGuard],
         loadComponent: () =>
           import('./features/dashboard/coming-soon.page').then((m) => m.ComingSoonPage),
       },

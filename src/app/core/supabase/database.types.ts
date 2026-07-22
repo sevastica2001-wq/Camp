@@ -6,7 +6,7 @@ export type CampStatus =
   | 'finished'
   | 'archived';
 
-export type CampRole = 'ADMIN' | 'ORGANIZER' | 'VOLUNTEER' | 'PARTICIPANT';
+export type CampRole = 'ADMIN' | 'ORGANIZER' | 'VOLUNTEER' | 'PARTICIPANT' | 'VIEWER';
 export type TransportRole = 'PASSENGER' | 'DRIVER';
 export type AttendanceStatus = 'pending' | 'confirmed' | 'cancelled' | 'waitlist';
 export type MessageTemplateType = 'driver' | 'passenger';

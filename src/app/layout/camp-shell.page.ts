@@ -27,6 +27,7 @@ import {
 } from 'ionicons/icons';
 import { AuthService } from '../core/auth/auth.service';
 import { CampContextService } from '../core/camp-context/camp-context.service';
+import { PermissionService } from '../core/permissions/permission.service';
 import { ThemeService } from '../core/theme.service';
 import { RegistrationsService } from '../features/participants/registrations.service';
 
@@ -123,50 +124,54 @@ interface NavItem {
                 }
               </nav>
 
-              <p class="camp-nav__section">Coming soon</p>
-              <nav class="camp-nav__tabs" aria-label="Upcoming features">
-                @for (item of upcomingItems(); track item.label) {
-                  <ion-menu-toggle autoHide="true">
-                    <a
-                      class="camp-nav__tab camp-nav__tab--soon"
-                      [routerLink]="item.link"
-                      routerLinkActive="camp-nav__tab--active"
-                      [attr.title]="item.label + ' (soon)'"
-                      [attr.aria-label]="item.label + ' (coming soon)'"
-                    >
-                      <ion-icon [name]="item.icon" aria-hidden="true" />
-                      <span>{{ item.label }}</span>
-                      <em>Soon</em>
-                    </a>
-                  </ion-menu-toggle>
-                }
-              </nav>
+              @if (!isViewer()) {
+                <p class="camp-nav__section">Coming soon</p>
+                <nav class="camp-nav__tabs" aria-label="Upcoming features">
+                  @for (item of upcomingItems(); track item.label) {
+                    <ion-menu-toggle autoHide="true">
+                      <a
+                        class="camp-nav__tab camp-nav__tab--soon"
+                        [routerLink]="item.link"
+                        routerLinkActive="camp-nav__tab--active"
+                        [attr.title]="item.label + ' (soon)'"
+                        [attr.aria-label]="item.label + ' (coming soon)'"
+                      >
+                        <ion-icon [name]="item.icon" aria-hidden="true" />
+                        <span>{{ item.label }}</span>
+                        <em>Soon</em>
+                      </a>
+                    </ion-menu-toggle>
+                  }
+                </nav>
+              }
 
               <p class="camp-nav__section">Account</p>
               <nav class="camp-nav__tabs camp-nav__tabs--footer" aria-label="Account">
-                <ion-menu-toggle autoHide="true">
-                  <a
-                    class="camp-nav__tab"
-                    [routerLink]="settingsLink()"
-                    routerLinkActive="camp-nav__tab--active"
-                    title="Settings"
-                    aria-label="Settings"
-                  >
-                    <ion-icon name="settings-outline" aria-hidden="true" />
-                    <span>Settings</span>
-                  </a>
-                </ion-menu-toggle>
-                <ion-menu-toggle autoHide="true">
-                  <a
-                    class="camp-nav__tab"
-                    routerLink="/dashboard"
-                    title="My Camps"
-                    aria-label="My Camps"
-                  >
-                    <ion-icon name="arrow-back-outline" aria-hidden="true" />
-                    <span>My Camps</span>
-                  </a>
-                </ion-menu-toggle>
+                @if (!isViewer()) {
+                  <ion-menu-toggle autoHide="true">
+                    <a
+                      class="camp-nav__tab"
+                      [routerLink]="settingsLink()"
+                      routerLinkActive="camp-nav__tab--active"
+                      title="Settings"
+                      aria-label="Settings"
+                    >
+                      <ion-icon name="settings-outline" aria-hidden="true" />
+                      <span>Settings</span>
+                    </a>
+                  </ion-menu-toggle>
+                  <ion-menu-toggle autoHide="true">
+                    <a
+                      class="camp-nav__tab"
+                      routerLink="/dashboard"
+                      title="My Camps"
+                      aria-label="My Camps"
+                    >
+                      <ion-icon name="arrow-back-outline" aria-hidden="true" />
+                      <span>My Camps</span>
+                    </a>
+                  </ion-menu-toggle>
+                }
                 <button
                   type="button"
                   class="camp-nav__tab"
@@ -181,11 +186,11 @@ interface NavItem {
                   type="button"
                   class="camp-nav__tab"
                   (click)="logout()"
-                  title="Logout"
-                  aria-label="Logout"
+                  [title]="logoutLabel()"
+                  [attr.aria-label]="logoutLabel()"
                 >
                   <ion-icon name="log-out-outline" aria-hidden="true" />
-                  <span>Logout</span>
+                  <span>{{ logoutLabel() }}</span>
                 </button>
               </nav>
             </div>
@@ -497,6 +502,7 @@ interface NavItem {
 export class CampShellPage implements OnInit {
   private readonly campContext = inject(CampContextService);
   private readonly auth = inject(AuthService);
+  private readonly permissions = inject(PermissionService);
   private readonly registrations = inject(RegistrationsService);
   private readonly theme = inject(ThemeService);
 
@@ -504,6 +510,10 @@ export class CampShellPage implements OnInit {
   readonly campLocation = computed(() => this.campContext.currentCamp()?.location ?? '');
   readonly showDriverPortal = signal(false);
   readonly collapsed = signal(this.readCollapsed());
+  readonly isViewer = computed(() => this.permissions.isViewer());
+  readonly logoutLabel = computed(() =>
+    this.auth.isAnonymous() || this.permissions.isViewer() ? 'Exit guest' : 'Logout',
+  );
   readonly themeLabel = computed(() => {
     const t = this.theme.theme();
     return t === 'system' ? 'System' : t === 'dark' ? 'Dark' : 'Light';
@@ -515,6 +525,12 @@ export class CampShellPage implements OnInit {
   }
 
   readonly workspaceItems = computed((): NavItem[] => {
+    if (this.permissions.isViewer()) {
+      return [
+        { label: 'Transport planner', icon: 'car-outline', link: this.transportationLink() },
+        { label: 'Room management', icon: 'bed-outline', link: this.roomsLink() },
+      ];
+    }
     const items: NavItem[] = [
       { label: 'Dashboard', icon: 'home-outline', link: this.dashboardLink(), exact: true },
       { label: 'Transport planner', icon: 'car-outline', link: this.transportationLink() },

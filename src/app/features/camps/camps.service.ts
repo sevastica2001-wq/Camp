@@ -184,7 +184,7 @@ export class CampsService {
   async createInvitation(
     campId: string,
     slug: string,
-    invitedRole: CampRole = 'PARTICIPANT',
+    invitedRole: CampRole = 'VIEWER',
   ): Promise<CampInvitation> {
     const userId = this.auth.user()?.id;
     if (!userId) {

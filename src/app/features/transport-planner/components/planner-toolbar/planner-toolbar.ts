@@ -1,4 +1,4 @@
-import { Component, computed, inject, output } from '@angular/core';
+import { Component, computed, inject, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -108,10 +108,12 @@ import { ThemeMode } from '../../models/transport.models';
         </div>
       </mat-menu>
 
-      <button mat-flat-button color="primary" type="button" (click)="addPerson.emit()">
-        <span class="material-symbols-outlined mr-1 text-[18px] align-middle">person_add</span>
-        Add person
-      </button>
+      @if (!readOnly()) {
+        <button mat-flat-button color="primary" type="button" (click)="addPerson.emit()">
+          <span class="material-symbols-outlined mr-1 text-[18px] align-middle">person_add</span>
+          Add person
+        </button>
+      }
       <button mat-stroked-button type="button" [matMenuTriggerFor]="exportMenu">
         <span class="material-symbols-outlined mr-1 text-[18px] align-middle">download</span>
         Export
@@ -119,45 +121,57 @@ import { ThemeMode } from '../../models/transport.models';
       <mat-menu #exportMenu="matMenu">
         <button mat-menu-item type="button" (click)="exportPassengers.emit()">Passengers CSV</button>
         <button mat-menu-item type="button" (click)="exportDrivers.emit()">Drivers CSV</button>
-        <button mat-menu-item type="button" (click)="downloadSeed.emit()">
-          Download seed for publish
-        </button>
-        <button mat-menu-item type="button" (click)="downloadBackup.emit()">Download backup JSON</button>
-        <button mat-menu-item type="button" (click)="importBackup.emit()">Import backup JSON…</button>
-        <button mat-menu-item type="button" (click)="resetSeed.emit()">
-          Reset to published seed
-        </button>
+        @if (!readOnly()) {
+          <button mat-menu-item type="button" (click)="downloadSeed.emit()">
+            Download seed for publish
+          </button>
+          <button mat-menu-item type="button" (click)="downloadBackup.emit()">
+            Download backup JSON
+          </button>
+          <button mat-menu-item type="button" (click)="importBackup.emit()">
+            Import backup JSON…
+          </button>
+          <button mat-menu-item type="button" (click)="resetSeed.emit()">
+            Reset to published seed
+          </button>
+        }
       </mat-menu>
 
-      <button mat-stroked-button type="button" (click)="autoAssign.emit()">
-        <span class="material-symbols-outlined mr-1 text-[18px] align-middle">auto_fix_high</span>
-        Auto Assign
-      </button>
+      @if (!readOnly()) {
+        <button mat-stroked-button type="button" (click)="autoAssign.emit()">
+          <span class="material-symbols-outlined mr-1 text-[18px] align-middle">auto_fix_high</span>
+          Auto Assign
+        </button>
+      }
 
-      <a mat-stroked-button [routerLink]="overviewLink()">
-        <span class="material-symbols-outlined mr-1 text-[18px] align-middle">print</span>
-        Overview
-      </a>
+      @if (!readOnly()) {
+        <a mat-stroked-button [routerLink]="overviewLink()">
+          <span class="material-symbols-outlined mr-1 text-[18px] align-middle">print</span>
+          Overview
+        </a>
+      }
 
       <div class="ml-auto flex items-center gap-1">
-        <button
-          mat-icon-button
-          type="button"
-          matTooltip="Undo (Ctrl+Z)"
-          [disabled]="!history.canUndo()"
-          (click)="history.undo()"
-        >
-          <span class="material-symbols-outlined">undo</span>
-        </button>
-        <button
-          mat-icon-button
-          type="button"
-          matTooltip="Redo (Ctrl+Shift+Z)"
-          [disabled]="!history.canRedo()"
-          (click)="history.redo()"
-        >
-          <span class="material-symbols-outlined">redo</span>
-        </button>
+        @if (!readOnly()) {
+          <button
+            mat-icon-button
+            type="button"
+            matTooltip="Undo (Ctrl+Z)"
+            [disabled]="!history.canUndo()"
+            (click)="history.undo()"
+          >
+            <span class="material-symbols-outlined">undo</span>
+          </button>
+          <button
+            mat-icon-button
+            type="button"
+            matTooltip="Redo (Ctrl+Shift+Z)"
+            [disabled]="!history.canRedo()"
+            (click)="history.redo()"
+          >
+            <span class="material-symbols-outlined">redo</span>
+          </button>
+        }
         <button
           mat-icon-button
           type="button"
@@ -175,6 +189,8 @@ export class PlannerToolbar {
   readonly theme = inject(ThemeService);
   readonly history = inject(CommandHistoryService);
   private readonly campContext = inject(CampContextService);
+
+  readonly readOnly = input(false);
 
   readonly addPerson = output<void>();
   readonly exportPassengers = output<void>();

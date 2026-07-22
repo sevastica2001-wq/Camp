@@ -11,6 +11,7 @@ import {
   IonSpinner,
 } from '@ionic/angular/standalone';
 import { AuthService } from '../../core/auth/auth.service';
+import { parseGuestViewToken } from './view-camp.page';
 
 @Component({
   selector: 'app-login-page',
@@ -73,6 +74,41 @@ import { AuthService } from '../../core/auth/auth.service';
             </ion-button>
           </form>
 
+          <div class="guest-block">
+            <p class="guest-block__title">Continue as guest</p>
+            <p class="guest-block__hint">
+              Paste a guest share link from an organizer (read-only transport and rooms).
+            </p>
+            <ion-list lines="none" class="auth-fields">
+              <ion-item>
+                <ion-input
+                  label="Guest link"
+                  labelPlacement="stacked"
+                  name="guestLink"
+                  [(ngModel)]="guestLink"
+                  placeholder="…/view/slug/code"
+                />
+              </ion-item>
+            </ion-list>
+            @if (guestError()) {
+              <ion-note color="danger">{{ guestError() }}</ion-note>
+            }
+            <ion-button
+              expand="block"
+              fill="outline"
+              class="auth-submit-outline"
+              type="button"
+              [disabled]="guestLoading()"
+              (click)="continueAsGuest()"
+            >
+              @if (guestLoading()) {
+                <ion-spinner name="crescent" />
+              } @else {
+                Continue as guest
+              }
+            </ion-button>
+          </div>
+
           <div class="auth-shell__links">
             <a routerLink="/forgot-password">Forgot password?</a>
             <a routerLink="/register">Create account</a>
@@ -118,6 +154,31 @@ import { AuthService } from '../../core/auth/auth.service';
       min-height: 48px;
       font-weight: 600;
     }
+
+    .auth-submit-outline {
+      margin-top: 0.35rem;
+      --border-radius: 12px;
+      min-height: 48px;
+      font-weight: 600;
+    }
+
+    .guest-block {
+      margin-top: 1.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--ctp-border);
+    }
+
+    .guest-block__title {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 650;
+    }
+
+    .guest-block__hint {
+      margin: 0.35rem 0 0.75rem;
+      font-size: 0.85rem;
+      color: var(--ctp-text-muted);
+    }
   `,
 })
 export class LoginPage {
@@ -127,8 +188,11 @@ export class LoginPage {
 
   email = '';
   password = '';
+  guestLink = '';
   readonly loading = signal(false);
+  readonly guestLoading = signal(false);
   readonly error = signal<string | null>(null);
+  readonly guestError = signal<string | null>(null);
 
   async submit(): Promise<void> {
     this.error.set(null);
@@ -143,6 +207,21 @@ export class LoginPage {
       await this.router.navigateByUrl(returnUrl);
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  async continueAsGuest(): Promise<void> {
+    this.guestError.set(null);
+    const parsed = parseGuestViewToken(this.guestLink);
+    if (!parsed) {
+      this.guestError.set('Paste a guest link like /view/slug/code');
+      return;
+    }
+    this.guestLoading.set(true);
+    try {
+      await this.router.navigate(['/view', parsed.slug, parsed.code]);
+    } finally {
+      this.guestLoading.set(false);
     }
   }
 }

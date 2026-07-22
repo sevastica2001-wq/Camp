@@ -19,6 +19,7 @@ export class AuthService {
   readonly profile = this._profile.asReadonly();
   readonly ready = this._ready.asReadonly();
   readonly isAuthenticated = computed(() => !!this._session());
+  readonly isAnonymous = computed(() => !!this._user()?.is_anonymous);
   readonly canCreateCamps = computed(() => !!this._profile()?.can_create_camps);
 
   constructor() {
@@ -73,6 +74,18 @@ export class AuthService {
   async login(email: string, password: string): Promise<{ error: string | null }> {
     const { error } = await this.supabase.client.auth.signInWithPassword({ email, password });
     return { error: error?.message ?? null };
+  }
+
+  /** Silent guest session (requires Anonymous provider enabled in Supabase Auth). */
+  async signInAsGuest(): Promise<{ error: string | null }> {
+    const { data, error } = await this.supabase.client.auth.signInAnonymously();
+    if (error) {
+      return { error: error.message };
+    }
+    if (data.user) {
+      await this.ensureProfile(data.user, 'Guest', 'Viewer');
+    }
+    return { error: null };
   }
 
   async logout(): Promise<void> {

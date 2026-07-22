@@ -49,7 +49,11 @@ import { AutoAssignSummaryDialog } from '../../dialogs/auto-assign-summary.dialo
         <div
           class="border-b border-[var(--ctp-warning)] bg-[var(--ctp-warning-soft)] px-4 py-2 text-sm text-[var(--ctp-warning)]"
         >
-          Camp is {{ campStatus() }} — transportation is view-only for your role/status.
+          @if (permissions.isViewer()) {
+            View only — guest access. You can browse transport but not change assignments.
+          } @else {
+            Camp is {{ campStatus() }} — transportation is view-only for your role/status.
+          }
         </div>
       }
 
@@ -127,6 +131,7 @@ import { AutoAssignSummaryDialog } from '../../dialogs/auto-assign-summary.dialo
         <div class="planner-desktop-workbench flex h-full min-h-0 flex-col overflow-x-auto">
           <app-summary-bar [summary]="store.summary()" />
           <app-planner-toolbar
+            [readOnly]="!permissions.canManageTransport()"
             (addPerson)="openAddPerson()"
             (exportPassengers)="importExport.exportPassengersCsv()"
             (exportDrivers)="importExport.exportDriversCsv()"
@@ -151,7 +156,10 @@ import { AutoAssignSummaryDialog } from '../../dialogs/auto-assign-summary.dialo
               <header class="border-b border-[var(--ctp-border)] px-4 py-3">
                 <h2 class="text-sm font-semibold">Unassigned</h2>
                 <p class="text-xs text-[var(--ctp-text-muted)]">
-                  {{ store.filteredUnassigned().length }} passengers · drag onto a driver
+                  {{ store.filteredUnassigned().length }} passengers
+                  @if (permissions.canManageTransport()) {
+                    · drag onto a driver
+                  }
                 </p>
               </header>
 
@@ -180,13 +188,14 @@ import { AutoAssignSummaryDialog } from '../../dialogs/auto-assign-summary.dialo
                   <div
                     class="shrink-0"
                     cdkDrag
+                    [cdkDragDisabled]="!permissions.canManageTransport()"
                     [cdkDragData]="passenger"
                     (cdkDragStarted)="activePassengerId.set(passenger.id)"
                     (cdkDragEnded)="clearHighlight()"
                   >
                     <app-passenger-card
                       [passenger]="passenger"
-                      [editable]="true"
+                      [editable]="permissions.canManageTransport()"
                       (edit)="openEditPerson($event)"
                     />
                   </div>
@@ -194,7 +203,11 @@ import { AutoAssignSummaryDialog } from '../../dialogs/auto-assign-summary.dialo
                   <div
                     class="flex flex-1 items-center justify-center rounded-lg border border-dashed border-[var(--ctp-border)] p-4 text-center text-xs text-[var(--ctp-text-muted)]"
                   >
-                    No unassigned passengers — use Add person to create one
+                    @if (permissions.canManageTransport()) {
+                      No unassigned passengers — use Add person to create one
+                    } @else {
+                      No unassigned passengers
+                    }
                   </div>
                 }
               </div>
@@ -225,6 +238,7 @@ import { AutoAssignSummaryDialog } from '../../dialogs/auto-assign-summary.dialo
                       [focusDriverId]="store.focusDriverId()"
                       [dropHighlight]="highlightFor(driver.id)"
                       [canEnter]="canEnterFn"
+                      [editable]="permissions.canManageTransport()"
                       (edit)="openEditDriver($event)"
                       (toggleCollapse)="store.toggleDriverCollapsed($event)"
                       (dropped)="onDrop($event, driver.id)"
@@ -361,13 +375,16 @@ export class PlannerPage implements OnInit {
   );
 
   readonly canEnterFn = (passengerId: string, driverId: string) =>
-    this.assignment.canEnter(passengerId, driverId);
+    this.permissions.canManageTransport() && this.assignment.canEnter(passengerId, driverId);
 
   connectedFor(driverId: string): string[] {
     return ['unassigned', ...this.driverListIds().filter((id) => id !== `driver-${driverId}`)];
   }
 
   highlightFor(driverId: string): 'ok' | 'warn' | 'danger' | null {
+    if (!this.permissions.canManageTransport()) {
+      return null;
+    }
     if (this.activeDropTarget() !== `driver-${driverId}`) {
       return null;
     }
@@ -398,6 +415,9 @@ export class PlannerPage implements OnInit {
 
   onDrop(event: CdkDragDrop<Passenger[]>, targetDriverId: string | null): void {
     this.clearHighlight();
+    if (!this.permissions.canManageTransport()) {
+      return;
+    }
     const passenger = event.item.data as Passenger;
     if (!passenger) {
       return;
@@ -411,6 +431,9 @@ export class PlannerPage implements OnInit {
   }
 
   openEditDriver(driverId: string): void {
+    if (!this.permissions.canManageTransport()) {
+      return;
+    }
     const driver = this.store.getDriver(driverId);
     if (!driver) {
       return;
@@ -427,6 +450,9 @@ export class PlannerPage implements OnInit {
   }
 
   openAddPerson(): void {
+    if (!this.permissions.canManageTransport()) {
+      return;
+    }
     const ref = this.dialog.open(AddPersonDialog, {
       width: '520px',
       maxHeight: '90vh',
@@ -440,10 +466,16 @@ export class PlannerPage implements OnInit {
   }
 
   triggerImportBackup(): void {
+    if (!this.permissions.canManageTransport()) {
+      return;
+    }
     this.backupInput()?.nativeElement.click();
   }
 
   async onBackupFileSelected(event: Event): Promise<void> {
+    if (!this.permissions.canManageTransport()) {
+      return;
+    }
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
@@ -458,6 +490,9 @@ export class PlannerPage implements OnInit {
   }
 
   resetToPublishedSeed(): void {
+    if (!this.permissions.canManageTransport()) {
+      return;
+    }
     const ok = window.confirm(
       'Replace camp transportation data with the published seed snapshot? You can undo once.',
     );
@@ -467,6 +502,9 @@ export class PlannerPage implements OnInit {
   }
 
   openEditPerson(passengerId: string): void {
+    if (!this.permissions.canManageTransport()) {
+      return;
+    }
     const passenger = this.store.getPassenger(passengerId);
     if (!passenger) {
       return;
@@ -493,6 +531,9 @@ export class PlannerPage implements OnInit {
   }
 
   runAutoAssign(): void {
+    if (!this.permissions.canManageTransport()) {
+      return;
+    }
     const result = this.autoAssign.run();
     this.dialog.open(AutoAssignSummaryDialog, {
       width: '520px',

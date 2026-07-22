@@ -183,7 +183,8 @@ addIcons({ copyOutline, duplicateOutline, linkOutline });
               <section class="app-panel">
                 <h2 class="app-section-title">Invitations</h2>
                 <p class="section-hint">
-                  Participant links for everyone; organizer links only for co-leaders.
+                  Participant links for everyone; organizer links only for co-leaders. Guest viewer
+                  links are read-only (transport + rooms).
                 </p>
                 <ion-list lines="none" class="form-fields">
                   <ion-item>
@@ -203,7 +204,7 @@ addIcons({ copyOutline, duplicateOutline, linkOutline });
                       name="inviteRole"
                     >
                       @for (role of inviteRoleOptions; track role) {
-                        <ion-select-option [value]="role">{{ role }}</ion-select-option>
+                        <ion-select-option [value]="role">{{ inviteRoleLabel(role) }}</ion-select-option>
                       }
                     </ion-select>
                   </ion-item>
@@ -211,16 +212,25 @@ addIcons({ copyOutline, duplicateOutline, linkOutline });
                 <ion-button
                   expand="block"
                   class="cta"
+                  type="button"
                   (click)="createInvitation()"
                   [disabled]="creatingInvite()"
                 >
-                  Create invitation
+                  @if (creatingInvite()) {
+                    Creating…
+                  } @else {
+                    Create invitation
+                  }
                 </ion-button>
+
+                @if (inviteError()) {
+                  <ion-note color="danger" class="invite-error">{{ inviteError() }}</ion-note>
+                }
 
                 @if (lastJoinUrl()) {
                   <button type="button" class="join-url" (click)="copyJoinUrl()">
                     {{ lastJoinUrl() }}
-                    <span>Tap to copy · {{ lastInviteRole() }}</span>
+                    <span>Tap to copy · {{ inviteRoleLabel(lastInviteRole()) }}</span>
                   </button>
                 }
 
@@ -230,7 +240,8 @@ addIcons({ copyOutline, duplicateOutline, linkOutline });
                       <div class="invite-row__text">
                         <strong>{{ inv.slug }} / {{ inv.code }}</strong>
                         <span class="invite-row__url">
-                          {{ inv.invited_role || 'PARTICIPANT' }} · {{ joinUrl(inv) }}
+                          {{ inviteRoleLabel(inv.invited_role || 'PARTICIPANT') }} ·
+                          {{ joinUrl(inv) }}
                         </span>
                       </div>
                       <ion-button fill="outline" size="small" (click)="copyUrl(inv)">Copy</ion-button>
@@ -296,6 +307,11 @@ addIcons({ copyOutline, duplicateOutline, linkOutline });
       --border-radius: 12px;
       min-height: 48px;
       font-weight: 600;
+    }
+
+    .invite-error {
+      display: block;
+      margin-top: 0.65rem;
     }
 
     .join-url {
@@ -386,7 +402,8 @@ export class CampSettingsPage implements OnInit {
   readonly invitations = signal<CampInvitation[]>([]);
   readonly members = signal<CampMemberWithUser[]>([]);
   readonly lastJoinUrl = signal<string | null>(null);
-  readonly lastInviteRole = signal<CampRole>('PARTICIPANT');
+  readonly lastInviteRole = signal<CampRole>('VIEWER');
+  readonly inviteError = signal<string | null>(null);
 
   readonly isOrganizer = computed(() => this.permissions.isOrganizer());
   readonly myUserId = computed(() => this.auth.user()?.id ?? null);
@@ -401,7 +418,12 @@ export class CampSettingsPage implements OnInit {
   ];
 
   readonly roleOptions: CampRole[] = ['ADMIN', 'ORGANIZER', 'VOLUNTEER', 'PARTICIPANT'];
-  readonly inviteRoleOptions: CampRole[] = ['PARTICIPANT', 'VOLUNTEER', 'ORGANIZER'];
+  readonly inviteRoleOptions: CampRole[] = [
+    'VIEWER',
+    'PARTICIPANT',
+    'VOLUNTEER',
+    'ORGANIZER',
+  ];
 
   form = {
     name: '',
@@ -411,7 +433,7 @@ export class CampSettingsPage implements OnInit {
   };
 
   inviteSlug = '';
-  inviteRole: CampRole = 'PARTICIPANT';
+  inviteRole: CampRole = 'VIEWER';
 
   ngOnInit(): void {
     void this.load();
@@ -504,26 +526,42 @@ export class CampSettingsPage implements OnInit {
 
   async createInvitation(): Promise<void> {
     const id = this.campId() ?? this.campContext.campId();
-    if (!id || !this.inviteSlug.trim()) {
+    this.inviteError.set(null);
+    if (!id) {
+      this.inviteError.set('No camp selected.');
       return;
     }
+    if (!this.inviteSlug.trim()) {
+      this.inviteError.set('Enter an invitation slug first.');
+      return;
+    }
+    const role = this.inviteRole || 'VIEWER';
     this.creatingInvite.set(true);
     try {
-      const inv = await this.campsService.createInvitation(
-        id,
-        this.inviteSlug.trim(),
-        this.inviteRole,
-      );
+      const inv = await this.campsService.createInvitation(id, this.inviteSlug.trim(), role);
       this.invitations.set(await this.campsService.listInvitations(id));
       this.lastJoinUrl.set(this.joinUrl(inv));
-      this.lastInviteRole.set(inv.invited_role ?? this.inviteRole);
+      this.lastInviteRole.set(inv.invited_role ?? role);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to create invitation';
+      this.inviteError.set(
+        /invalid input value for enum|VIEWER/i.test(message)
+          ? 'Guest viewer role is not in the database yet. Run migration 0007_viewer_role.sql in Supabase, then try again.'
+          : message,
+      );
     } finally {
       this.creatingInvite.set(false);
     }
   }
 
   joinUrl(inv: CampInvitation): string {
-    return `${window.location.origin}/join/${inv.slug}/${inv.code}`;
+    const role = inv.invited_role ?? 'PARTICIPANT';
+    const path = role === 'VIEWER' ? 'view' : 'join';
+    return `${window.location.origin}/${path}/${inv.slug}/${inv.code}`;
+  }
+
+  inviteRoleLabel(role: CampRole): string {
+    return role === 'VIEWER' ? 'Guest viewer' : role;
   }
 
   copyJoinUrl(): void {

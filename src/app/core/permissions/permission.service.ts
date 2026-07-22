@@ -15,6 +15,10 @@ export class PermissionService {
     return this.hasRole('ADMIN', 'ORGANIZER');
   }
 
+  isViewer(): boolean {
+    return this.hasRole('VIEWER');
+  }
+
   isParticipant(): boolean {
     return this.hasRole('PARTICIPANT', 'VOLUNTEER', 'ORGANIZER', 'ADMIN');
   }
@@ -25,6 +29,11 @@ export class PermissionService {
       return false;
     }
     return status !== 'finished' && status !== 'archived';
+  }
+
+  /** Alias for assignment mutations (transport + lodging). */
+  canMutateAssignments(): boolean {
+    return this.canManageTransport();
   }
 
   canEditOwnRegistration(): boolean {

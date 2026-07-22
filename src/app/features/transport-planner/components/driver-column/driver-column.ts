@@ -55,14 +55,16 @@ import { isOverCapacity } from '../../utils/seat.utils';
             }
           </div>
           <div class="flex shrink-0 items-center gap-0.5">
-            <button
-              mat-icon-button
-              type="button"
-              matTooltip="Edit driver"
-              (click)="edit.emit(driver().id)"
-            >
-              <span class="material-symbols-outlined text-[20px]">edit</span>
-            </button>
+            @if (editable()) {
+              <button
+                mat-icon-button
+                type="button"
+                matTooltip="Edit driver"
+                (click)="edit.emit(driver().id)"
+              >
+                <span class="material-symbols-outlined text-[20px]">edit</span>
+              </button>
+            }
             <button
               mat-icon-button
               type="button"
@@ -123,6 +125,7 @@ import { isOverCapacity } from '../../utils/seat.utils';
           @for (passenger of passengers(); track passenger.id) {
             <div
               cdkDrag
+              [cdkDragDisabled]="!editable()"
               [cdkDragData]="passenger"
               (cdkDragStarted)="entered.emit({ passengerId: passenger.id, driverId: driver().id })"
             >
@@ -132,7 +135,7 @@ import { isOverCapacity } from '../../utils/seat.utils';
             <div
               class="flex flex-1 items-center justify-center rounded-lg border border-dashed border-[var(--ctp-border)] p-4 text-center text-xs text-[var(--ctp-text-muted)]"
             >
-              Drop passengers here
+              {{ editable() ? 'Drop passengers here' : 'No passengers' }}
             </div>
           }
         </div>
@@ -151,6 +154,7 @@ export class DriverColumn {
   readonly canEnter = input<(passengerId: string, driverId: string) => boolean>(
     () => true,
   );
+  readonly editable = input(true);
 
   readonly edit = output<string>();
   readonly toggleCollapse = output<string>();

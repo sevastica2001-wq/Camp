@@ -72,6 +72,7 @@ import { LodgingPersonCard } from './lodging-person-card';
         @for (person of occupants(); track person.id) {
           <div
             cdkDrag
+            [cdkDragDisabled]="!editable()"
             [cdkDragData]="person"
             (cdkDragStarted)="dragStarted.emit(person.id)"
             (cdkDragEnded)="dragEnded.emit()"
@@ -82,7 +83,7 @@ import { LodgingPersonCard } from './lodging-person-card';
           <div
             class="flex flex-1 items-center justify-center rounded-lg border border-dashed border-[var(--ctp-border)] p-3 text-center text-[11px] text-[var(--ctp-text-muted)]"
           >
-            Drop people here
+            {{ editable() ? 'Drop people here' : 'Empty' }}
           </div>
         }
       </div>
@@ -97,6 +98,7 @@ export class LodgingRoomColumn {
   readonly policyLabel = input('Open');
   readonly canEnter = input<(personId: string, roomId: string) => boolean>(() => true);
   readonly activePersonId = input<string | null>(null);
+  readonly editable = input(true);
 
   readonly dropped = output<CdkDragDrop<LodgingPerson[]>>();
   readonly entered = output<{ personId: string; roomId: string }>();
