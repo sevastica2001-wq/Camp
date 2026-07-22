@@ -27,12 +27,22 @@ export class AuthService {
   }
 
   private async init(): Promise<void> {
-    const { data } = await this.supabase.client.auth.getSession();
-    this._session.set(data.session);
-    this._user.set(data.session?.user ?? null);
-    if (data.session?.user) {
-      await this.ensureProfile(data.session.user);
+    const { data, error } = await this.supabase.client.auth.getSession();
+    if (error && this.isInvalidRefreshError(error)) {
+      await this.clearLocalAuth();
+    } else if (data.session) {
+      // Stored refresh tokens can be revoked/missing (e.g. after guest sessions).
+      // Validate before treating the user as signed in.
+      const { error: userError } = await this.supabase.client.auth.getUser();
+      if (userError && this.isInvalidRefreshError(userError)) {
+        await this.clearLocalAuth();
+      } else {
+        this._session.set(data.session);
+        this._user.set(data.session.user);
+        await this.ensureProfile(data.session.user);
+      }
     }
+
     this._ready.set(true);
 
     this.supabase.client.auth.onAuthStateChange((_event, session) => {
@@ -44,6 +54,41 @@ export class AuthService {
         this._profile.set(null);
       }
     });
+  }
+
+  /** Drop browser session only — ignores API errors from already-dead refresh tokens. */
+  private async clearLocalAuth(): Promise<void> {
+    // Remove stored tokens first so GoTrue does not attempt a doomed refresh.
+    this.wipeAuthStorage();
+    try {
+      await this.supabase.client.auth.signOut({ scope: 'local' });
+    } catch {
+      // ignore
+    }
+    this._session.set(null);
+    this._user.set(null);
+    this._profile.set(null);
+  }
+
+  private wipeAuthStorage(): void {
+    if (typeof localStorage === 'undefined') {
+      return;
+    }
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && /^sb-.*-auth-token/.test(key)) {
+        keys.push(key);
+      }
+    }
+    for (const key of keys) {
+      localStorage.removeItem(key);
+    }
+  }
+
+  private isInvalidRefreshError(error: { message?: string } | null | undefined): boolean {
+    const msg = error?.message ?? '';
+    return /refresh token/i.test(msg);
   }
 
   async register(input: {
@@ -72,12 +117,20 @@ export class AuthService {
   }
 
   async login(email: string, password: string): Promise<{ error: string | null }> {
+    // Clear anonymous/stale sessions first so a dead refresh token cannot block password login.
+    await this.clearLocalAuth();
     const { error } = await this.supabase.client.auth.signInWithPassword({ email, password });
+    if (error && this.isInvalidRefreshError(error)) {
+      await this.clearLocalAuth();
+      const retry = await this.supabase.client.auth.signInWithPassword({ email, password });
+      return { error: retry.error?.message ?? null };
+    }
     return { error: error?.message ?? null };
   }
 
   /** Silent guest session (requires Anonymous provider enabled in Supabase Auth). */
   async signInAsGuest(): Promise<{ error: string | null }> {
+    await this.clearLocalAuth();
     const { data, error } = await this.supabase.client.auth.signInAnonymously();
     if (error) {
       return { error: error.message };
@@ -89,7 +142,13 @@ export class AuthService {
   }
 
   async logout(): Promise<void> {
-    await this.supabase.client.auth.signOut();
+    try {
+      await this.supabase.client.auth.signOut({ scope: 'local' });
+    } catch {
+      // ignore stale refresh-token errors on logout
+    }
+    this._session.set(null);
+    this._user.set(null);
     this._profile.set(null);
     await this.router.navigateByUrl('/login');
   }
