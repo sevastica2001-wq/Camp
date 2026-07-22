@@ -21,6 +21,7 @@ export class TransportStore {
 
   private readonly _state = signal<AppState>(createEmptyState());
   private readonly _search = signal('');
+  private readonly _unassignedSearch = signal('');
   private readonly _filters = signal<PlannerFilters>({ ...DEFAULT_FILTERS });
   private readonly _focusDriverId = signal<string | null>(null);
   private readonly _loading = signal(false);
@@ -31,6 +32,7 @@ export class TransportStore {
 
   readonly state = this._state.asReadonly();
   readonly search = this._search.asReadonly();
+  readonly unassignedSearch = this._unassignedSearch.asReadonly();
   readonly filters = this._filters.asReadonly();
   readonly focusDriverId = this._focusDriverId.asReadonly();
   readonly loading = this._loading.asReadonly();
@@ -47,7 +49,11 @@ export class TransportStore {
   readonly summary = computed(() => computeSummary(this._state(), this.problems()));
 
   readonly filteredUnassigned = computed(() =>
-    filterPassengers(this.unassignedPassengers(), this._filters(), this._search()),
+    filterPassengers(
+      this.unassignedPassengers(),
+      this._filters(),
+      this._unassignedSearch(),
+    ),
   );
 
   readonly filteredDrivers = computed(() =>
@@ -146,6 +152,10 @@ export class TransportStore {
 
   setSearch(value: string): void {
     this._search.set(value);
+  }
+
+  setUnassignedSearch(value: string): void {
+    this._unassignedSearch.set(value);
   }
 
   setFilters(patch: Partial<PlannerFilters>): void {

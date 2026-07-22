@@ -158,6 +158,13 @@ const UNASSIGNED_OPTION = { id: '', display_name: 'Unassigned' } as Registration
                 </li>
               }
             </ul>
+            <button
+              type="button"
+              class="clear-roommates-btn"
+              (click)="clearAllRoommates()"
+            >
+              Clear all roommates
+            </button>
           }
         </div>
       }
@@ -327,6 +334,23 @@ const UNASSIGNED_OPTION = { id: '', display_name: 'Unassigned' } as Registration
       color: var(--ctp-danger);
       background: color-mix(in srgb, var(--ctp-danger) 12%, transparent);
     }
+
+    .clear-roommates-btn {
+      align-self: flex-start;
+      margin-top: 0.15rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 8px;
+      border: 1px solid color-mix(in srgb, var(--ctp-danger) 35%, var(--ctp-border));
+      background: transparent;
+      color: var(--ctp-danger);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .clear-roommates-btn:hover {
+      background: color-mix(in srgb, var(--ctp-danger) 10%, transparent);
+    }
   `,
 })
 export class AddParticipantDialog {
@@ -477,6 +501,22 @@ export class AddParticipantDialog {
 
   removeRoommate(id: string): void {
     this.roommateIds.update((ids) => ids.filter((x) => x !== id));
+  }
+
+  clearAllRoommates(): void {
+    const count = this.roommateIds().length;
+    if (!count) {
+      return;
+    }
+    const label = count === 1 ? '1 roommate link' : `${count} roommate links`;
+    const ok = window.confirm(
+      `Clear all roommates?\n\nThis will unlink ${label} both ways (they will also lose this person from their roommate list). You still need to Save to apply.`,
+    );
+    if (!ok) {
+      return;
+    }
+    this.roommateIds.set([]);
+    this.roommateQuery.set('');
   }
 
   onDriverQueryChange(value: string): void {

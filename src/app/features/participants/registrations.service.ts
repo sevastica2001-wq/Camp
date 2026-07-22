@@ -301,13 +301,12 @@ export class RegistrationsService {
       }
     }
 
-    // Keep links mutual: add reverse edges for new roommates, remove reverse for dropped ones
-    const prevSet = new Set(previous);
+    // Keep links mutual for the whole current list (repairs older one-way links too),
+    // and remove reverse edges for anyone dropped from the list.
     const nextSet = new Set(unique);
-    const added = unique.filter((rid) => !prevSet.has(rid));
     const removed = previous.filter((rid) => !nextSet.has(rid));
 
-    for (const roommateId of added) {
+    for (const roommateId of unique) {
       const { data: existing } = await this.supabase.client
         .from('registration_roommate_preferences')
         .select('id')
@@ -323,7 +322,10 @@ export class RegistrationsService {
             roommate_registration_id: registrationId,
           });
         if (error) {
-          throw new Error(error.message);
+          // Ignore unique races; anything else is a real failure
+          if (!error.message.toLowerCase().includes('duplicate')) {
+            throw new Error(error.message);
+          }
         }
       }
     }

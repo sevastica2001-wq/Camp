@@ -154,6 +154,16 @@ import { AutoAssignSummaryDialog } from '../../dialogs/auto-assign-summary.dialo
                   {{ store.filteredUnassigned().length }} passengers · drag onto a driver
                 </p>
               </header>
+
+              <div class="px-3 py-2">
+                <input
+                  class="w-full rounded-xl border border-[var(--ctp-border)] bg-[var(--ctp-bg)] py-2.5 px-3 text-sm outline-none focus:border-[var(--ctp-accent)]"
+                  type="search"
+                  placeholder="Search unassigned…"
+                  [value]="store.unassignedSearch()"
+                  (input)="store.setUnassignedSearch($any($event.target).value)"
+                />
+              </div>
               <div
                 class="drop-list flex flex-1 flex-col gap-2 overflow-y-auto p-3"
                 cdkDropList
