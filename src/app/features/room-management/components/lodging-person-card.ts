@@ -9,47 +9,47 @@ import { genderLabel } from '../utils/lodging.rules';
   imports: [MatTooltipModule],
   template: `
     <article
-      class="cursor-grab rounded-[10px] border border-[var(--ctp-border)] bg-[var(--ctp-surface)] p-3 shadow-[var(--ctp-shadow)] transition hover:-translate-y-0.5 active:cursor-grabbing"
+      class="cursor-grab rounded-md border border-[var(--ctp-border)] bg-[var(--ctp-surface)] px-2 py-1.5 shadow-[var(--ctp-shadow)] transition hover:-translate-y-0.5 active:cursor-grabbing"
     >
-      <div class="flex items-start justify-between gap-2">
-        <div class="min-w-0 flex-1">
-          <h4 class="truncate text-sm font-semibold text-[var(--ctp-text)]">
-            {{ person().name }}
-          </h4>
-          <div class="mt-2 flex flex-wrap gap-1.5">
-            <span
-              class="rounded-md bg-[var(--ctp-surface-2)] px-2 py-0.5 text-[11px] font-medium text-[var(--ctp-text-muted)]"
-              [matTooltip]="'Gender: ' + person().gender"
-            >
-              {{ genderLabel(person().gender) }}
-            </span>
-            @if (person().partnerId) {
-              <span
-                class="rounded-md bg-[var(--ctp-accent-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--ctp-accent)]"
-              >
-                Couple
-              </span>
-            }
-            @if (person().roommateIds.length > 0) {
-              <span
-                class="rounded-md bg-[var(--ctp-surface-2)] px-2 py-0.5 text-[11px] font-medium text-[var(--ctp-text-muted)]"
-                [matTooltip]="roommateTooltip()"
-              >
-                +{{ person().roommateIds.length }} roommate{{
-                  person().roommateIds.length === 1 ? '' : 's'
-                }}
-              </span>
-            }
-          </div>
-        </div>
+      <div class="flex items-center gap-1.5">
+        <h4 class="min-w-0 flex-1 truncate text-xs font-semibold leading-tight text-[var(--ctp-text)]">
+          {{ person().name }}
+        </h4>
+        <span
+          class="shrink-0 rounded px-1 py-px text-[9px] font-semibold leading-none text-[var(--ctp-text-muted)] bg-[var(--ctp-surface-2)]"
+          [matTooltip]="'Gender: ' + person().gender"
+        >
+          {{ genderLabel(person().gender) }}
+        </span>
         @if (person().notes) {
           <span
-            class="material-symbols-outlined shrink-0 text-[18px] text-[var(--ctp-text-muted)]"
+            class="material-symbols-outlined shrink-0 text-[14px] text-[var(--ctp-text-muted)]"
             [matTooltip]="person().notes!"
             >sticky_note_2</span
           >
         }
       </div>
+      @if (person().partnerId || person().roommateIds.length > 0) {
+        <div class="mt-1 flex flex-wrap gap-1">
+          @if (person().partnerId) {
+            <span
+              class="rounded px-1 py-px text-[9px] font-medium leading-none text-[var(--ctp-accent)] bg-[var(--ctp-accent-soft)]"
+            >
+              Couple
+            </span>
+          }
+          @if (person().roommateIds.length > 0) {
+            <span
+              class="rounded px-1 py-px text-[9px] font-medium leading-none text-[var(--ctp-text-muted)] bg-[var(--ctp-surface-2)]"
+              [matTooltip]="roommateTooltip()"
+            >
+              +{{ person().roommateIds.length }} roommate{{
+                person().roommateIds.length === 1 ? '' : 's'
+              }}
+            </span>
+          }
+        </div>
+      }
     </article>
   `,
 })

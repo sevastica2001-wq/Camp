@@ -1,6 +1,6 @@
 {
   "label": "Camp Cristina Voroneț",
-  "totalBeds": 155,
+  "totalBeds": 157,
   "buildings": [
     {
       "seedKey": "receptie",
@@ -305,21 +305,21 @@
           "seedKey": "cabana-8-r1",
           "name": "Camera 1 (loft)",
           "floor": "open_loft",
-          "capacity": 6,
+          "capacity": 7,
           "amenities": ["double_bed", "sofa_bed", "tv"],
           "bathType": "private",
           "sortOrder": 1,
-          "notes": "2 paturi duble etaj + canapea parter, scară interioară, TV · baie proprie"
+          "notes": "2 paturi duble etaj + canapea parter, scară interioară, TV · baie proprie · 7 locuri"
         },
         {
           "seedKey": "cabana-8-r2",
           "name": "Camera 2 (loft)",
           "floor": "open_loft",
-          "capacity": 6,
+          "capacity": 7,
           "amenities": ["double_bed", "sofa_bed", "tv"],
           "bathType": "private",
           "sortOrder": 2,
-          "notes": "2 paturi duble etaj + canapea parter, scară interioară, TV · baie proprie"
+          "notes": "2 paturi duble etaj + canapea parter, scară interioară, TV · baie proprie · 7 locuri"
         }
       ]
     },

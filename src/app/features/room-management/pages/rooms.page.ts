@@ -74,13 +74,18 @@ import { LodgingStore } from '../store/lodging.store';
             @for (building of store.activeBuildings(); track building.id) {
               <section class="app-panel mt-3">
                 <h2 class="app-section-title">{{ building.name }}</h2>
-                <p class="muted">{{ building.siteName }}</p>
+                <p class="muted">
+                  {{ building.siteName }} · {{ bedsFor(building.id) }} beds
+                </p>
                 @for (room of roomsFor(building.id); track room.id) {
                   <div class="room-line">
                     <strong>{{ room.name }}</strong>
                     <span
-                      >{{ store.getRoomOccupants(room).length }}/{{ room.capacity }} ·
-                      {{ store.roomPolicyLabel(room) }}</span
+                      >{{ store.getRoomOccupants(room).length }}/{{ room.capacity }}
+                      @if (store.getRoomOccupants(room).length > room.capacity) {
+                        <span class="text-[var(--ctp-danger)]"> · over capacity</span>
+                      }
+                      · {{ store.roomPolicyLabel(room) }}</span
                     >
                   </div>
                 }
@@ -201,7 +206,8 @@ import { LodgingStore } from '../store/lodging.store';
                         <div class="mb-2 flex items-baseline justify-between gap-2">
                           <h3 class="text-base font-semibold">{{ building.name }}</h3>
                           <span class="text-xs text-[var(--ctp-text-muted)]">
-                            {{ roomsFor(building.id).length }} rooms
+                            {{ roomsFor(building.id).length }} rooms ·
+                            {{ bedsFor(building.id) }} beds
                           </span>
                         </div>
                         @if (building.status !== 'active') {
@@ -336,6 +342,10 @@ export class RoomsPage implements OnInit {
 
   roomsFor(buildingId: string) {
     return this.store.roomsByBuilding().get(buildingId) ?? [];
+  }
+
+  bedsFor(buildingId: string): number {
+    return this.roomsFor(buildingId).reduce((sum, room) => sum + room.capacity, 0);
   }
 
   connectedFor(roomId: string): string[] {

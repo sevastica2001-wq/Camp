@@ -120,10 +120,53 @@ export class LodgingService {
     if (error) {
       throw new Error(error.message);
     }
-    if ((count ?? 0) > 0) {
+    if ((count ?? 0) === 0) {
+      await this.seedCristinaLayout(campId);
       return;
     }
-    await this.seedCristinaLayout(campId);
+    // Keep bed counts in sync with the seed for already-seeded camps
+    // (roommate preference limits must never affect room capacity).
+    await this.syncSeedRoomCapacities(campId);
+  }
+
+  /** Updates room capacity/notes from seed by seed_key without wiping assignments. */
+  private async syncSeedRoomCapacities(campId: string): Promise<void> {
+    const { data: rooms, error } = await this.supabase.client
+      .from('lodging_rooms')
+      .select('id, seed_key, capacity, notes')
+      .eq('camp_id', campId);
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const seedByKey = new Map<string, { capacity: number; notes: string }>();
+    for (const building of this.seed.buildings) {
+      for (const room of building.rooms) {
+        seedByKey.set(room.seedKey, { capacity: room.capacity, notes: room.notes });
+      }
+    }
+
+    for (const row of (rooms as Array<{
+      id: string;
+      seed_key: string;
+      capacity: number;
+      notes: string;
+    }>) ?? []) {
+      const seed = seedByKey.get(row.seed_key);
+      if (!seed) {
+        continue;
+      }
+      if (row.capacity === seed.capacity && row.notes === seed.notes) {
+        continue;
+      }
+      const { error: updErr } = await this.supabase.client
+        .from('lodging_rooms')
+        .update({ capacity: seed.capacity, notes: seed.notes })
+        .eq('id', row.id);
+      if (updErr) {
+        throw new Error(updErr.message);
+      }
+    }
   }
 
   async seedCristinaLayout(campId: string): Promise<void> {

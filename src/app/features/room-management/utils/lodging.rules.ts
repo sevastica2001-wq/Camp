@@ -73,14 +73,7 @@ export function canAssignToRoom(
     };
   }
 
-  if (nextCount > room.capacity) {
-    return {
-      blocked: true,
-      overCapacity: true,
-      genderConflict: false,
-      reason: 'Not enough beds for this person and their roommates',
-    };
-  }
+  const overCapacity = nextCount > room.capacity;
 
   // Only validate people who are not already in this room
   const entering = groupMembers.filter((p) => !room.occupantIds.includes(p.id));
@@ -108,7 +101,7 @@ export function canAssignToRoom(
     if (candidate.gender === 'unspecified') {
       return {
         blocked: true,
-        overCapacity: false,
+        overCapacity,
         genderConflict: true,
         reason: `${candidate.name} needs a gender before this room`,
       };
@@ -116,14 +109,19 @@ export function canAssignToRoom(
     if (candidate.gender !== policy) {
       return {
         blocked: true,
-        overCapacity: false,
+        overCapacity,
         genderConflict: true,
         reason: `Room is ${policy}-only (${candidate.name})`,
       };
     }
   }
 
-  return { blocked: false, overCapacity: false, genderConflict: false, reason: null };
+  return {
+    blocked: false,
+    overCapacity,
+    genderConflict: false,
+    reason: overCapacity ? 'Over capacity' : null,
+  };
 }
 
 /** People who should move together: preferred roommates in either direction. */

@@ -35,9 +35,12 @@ import { LodgingPersonCard } from './lodging-person-card';
           </span>
         </div>
 
-        <div class="mt-2 flex items-center justify-between text-xs">
+        <div class="mt-2 flex items-center justify-between gap-2 text-xs">
           <span class="font-medium">
             {{ occupants().length }}/{{ room().capacity }} beds
+            @if (isOverCapacity()) {
+              <span class="ml-1.5 font-semibold text-[var(--ctp-danger)]">Over capacity</span>
+            }
           </span>
           <span class="text-[var(--ctp-text-muted)]">{{ bathLabel() }}</span>
         </div>
@@ -111,10 +114,17 @@ export class LodgingRoomColumn {
     return Math.min(100, (this.occupants().length / cap) * 100);
   });
 
+  readonly isOverCapacity = computed(
+    () => this.occupants().length > this.room().capacity,
+  );
+
   readonly fillClass = computed(() => {
+    if (this.isOverCapacity()) {
+      return 'bg-[var(--ctp-danger)]';
+    }
     const ratio = this.fillPercent();
     if (ratio >= 100) {
-      return 'bg-[var(--ctp-danger)]';
+      return 'bg-[var(--ctp-warning)]';
     }
     if (ratio >= 80) {
       return 'bg-[var(--ctp-warning)]';

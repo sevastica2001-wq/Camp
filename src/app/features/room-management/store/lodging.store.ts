@@ -130,14 +130,16 @@ export class LodgingStore {
     const extraIds = group.filter((p) => p.id !== personId).map((p) => p.id);
     const check = canAssignToRoom(person, room, this.people(), extraIds);
     if (check.blocked) {
-      return check.overCapacity ? 'danger' : 'blocked';
+      return 'blocked';
+    }
+    if (check.overCapacity) {
+      return 'danger';
     }
     return 'ok';
   }
 
   canEnter(personId: string, roomId: string | null): boolean {
-    // Allow enter on over-capacity ('danger') so the drop zone expands and
-    // shows a red highlight; movePerson still rejects and surfaces the reason.
+    // Allow enter when over capacity ('danger') — drop is permitted with a warning.
     return this.evaluateDrop(personId, roomId) !== 'blocked';
   }
 
@@ -167,6 +169,7 @@ export class LodgingStore {
       }
       const extraIds = moverIds.filter((id) => id !== personId);
       const check = canAssignToRoom(person, room, this.people(), extraIds);
+      // Over capacity is allowed; only hard blocks (e.g. gender) stop the move.
       if (check.blocked) {
         this.error.set(check.reason ?? 'Cannot assign this group to the room');
         return;
